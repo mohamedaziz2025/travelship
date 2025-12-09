@@ -70,7 +70,7 @@ export default function RegisterPage() {
               Créer un compte
             </h1>
             <p className="text-white/70">
-              Rejoignez la communauté TravelShip
+              Rejoignez la communauté ShipperTrip
             </p>
           </div>
 

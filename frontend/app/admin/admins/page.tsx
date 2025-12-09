@@ -25,6 +25,7 @@ interface Admin {
   email: string
   role: string
   adminRole: 'superadmin' | 'moderator'
+  status: string
   createdAt: string
 }
 
@@ -33,6 +34,8 @@ export default function AdminsManagement() {
   const { user, isAuthenticated } = useAuthStore()
   const [admins, setAdmins] = useState<Admin[]>([])
   const [loading, setLoading] = useState(true)
+  const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', email: '', adminRole: 'moderator' as 'superadmin' | 'moderator' })
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'admin') {
@@ -68,6 +71,62 @@ export default function AdminsManagement() {
       loadAdmins()
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erreur')
+    }
+  }
+
+  const handleEditAdmin = (admin: Admin) => {
+    setEditingAdmin(admin)
+    setEditForm({
+      name: admin.name,
+      email: admin.email,
+      adminRole: admin.adminRole
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingAdmin) return
+
+    try {
+      await adminApi.updateAdmin(editingAdmin._id, editForm)
+      toast.success('Admin modifié avec succès')
+      setEditingAdmin(null)
+      loadAdmins()
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Erreur de modification')
+    }
+  }
+
+  const handleBlockAdmin = async (adminId: string, blocked: boolean) => {
+    if (user?.adminRole !== 'superadmin') {
+      toast.error('Seul un super admin peut bloquer des admins')
+      return
+    }
+
+    if (!confirm(`${blocked ? 'Bloquer' : 'Débloquer'} cet administrateur ?`)) return
+
+    try {
+      await adminApi.blockAdmin(adminId, blocked)
+      toast.success(blocked ? 'Admin bloqué avec succès' : 'Admin débloqué avec succès')
+      loadAdmins()
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Erreur')
+    }
+  }
+
+  const handleDeleteAdmin = async (adminId: string) => {
+    if (user?.adminRole !== 'superadmin') {
+      toast.error('Seul un super admin peut supprimer des admins')
+      return
+    }
+
+    if (!confirm('⚠️ ATTENTION : Êtes-vous sûr de vouloir supprimer cet administrateur ? Cette action est irréversible !')) return
+
+    try {
+      await adminApi.deleteAdmin(adminId)
+      toast.success('Admin supprimé avec succès')
+      loadAdmins()
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Erreur de suppression')
     }
   }
 
@@ -173,23 +232,70 @@ export default function AdminsManagement() {
       ),
     },
     {
+      key: 'status',
+      label: 'Statut',
+      render: (admin: Admin) => (
+        <div>
+          {admin.status === 'blocked' ? (
+            <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-sm font-medium">
+              🚫 Bloqué
+            </span>
+          ) : (
+            <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
+              ✓ Actif
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
       key: 'actions',
       label: 'Actions',
       render: (admin: Admin) => (
         <div className="flex items-center gap-2">
-          {user?.adminRole === 'superadmin' && admin._id !== user.id && (
-            <select
-              value={admin.adminRole}
-              onChange={(e) => handleUpdateRole(admin._id, e.target.value as any)}
-              className="px-3 py-2 bg-[#0f172a] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="superadmin">Super Admin</option>
-              <option value="moderator">Modérateur</option>
-            </select>
-          )}
-          {admin._id === user?.id && (
+          {user?.adminRole === 'superadmin' && admin._id !== user.id ? (
+            <>
+              <select
+                value={admin.adminRole}
+                onChange={(e) => handleUpdateRole(admin._id, e.target.value as any)}
+                className="px-3 py-2 bg-[#0f172a] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="superadmin">Super Admin</option>
+                <option value="moderator">Modérateur</option>
+              </select>
+              <button
+                onClick={() => handleEditAdmin(admin)}
+                className="px-3 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors text-sm"
+                title="Modifier"
+              >
+                ✏️
+              </button>
+              <button
+                onClick={() => handleBlockAdmin(admin._id, admin.status !== 'blocked')}
+                className={`px-3 py-2 rounded-lg transition-colors text-sm ${
+                  admin.status === 'blocked'
+                    ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                    : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+                }`}
+                title={admin.status === 'blocked' ? 'Débloquer' : 'Bloquer'}
+              >
+                {admin.status === 'blocked' ? '✓' : '🚫'}
+              </button>
+              <button
+                onClick={() => handleDeleteAdmin(admin._id)}
+                className="px-3 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors text-sm"
+                title="Supprimer"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          ) : admin._id === user?.id ? (
             <span className="px-3 py-1 bg-gray-700/50 text-gray-400 rounded-lg text-sm">
               Vous
+            </span>
+          ) : (
+            <span className="px-3 py-1 bg-gray-700/50 text-gray-400 rounded-lg text-sm">
+              Accès limité
             </span>
           )}
         </div>
@@ -373,6 +479,78 @@ export default function AdminsManagement() {
             </ul>
           </div>
         </motion.div>
+
+        {/* Modal d'édition */}
+        {editingAdmin && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-2xl p-8 max-w-md w-full border border-gray-800 shadow-2xl"
+            >
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                ✏️ Modifier l'administrateur
+              </h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    Nom
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="w-full px-4 py-3 bg-[#0f172a] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nom de l'admin"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-4 py-3 bg-[#0f172a] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="email@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    Rôle
+                  </label>
+                  <select
+                    value={editForm.adminRole}
+                    onChange={(e) => setEditForm({ ...editForm, adminRole: e.target.value as any })}
+                    className="w-full px-4 py-3 bg-[#0f172a] border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="superadmin">Super Admin</option>
+                    <option value="moderator">Modérateur</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setEditingAdmin(null)}
+                  className="flex-1 px-4 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-colors font-medium"
+                >
+                  Enregistrer
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </main>
     </div>
   )

@@ -468,7 +468,7 @@ export default function HomePage() {
       <section className="py-20 bg-light">
         <div className="container-custom">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Pourquoi TravelShip ?</h2>
+            <h2 className="text-4xl font-bold mb-4">Pourquoi ShipperTrip ?</h2>
             <p className="text-xl text-dark-lighter max-w-2xl mx-auto">
               La solution complète pour l'envoi et le transport de colis entre particuliers
             </p>
@@ -574,7 +574,7 @@ export default function HomePage() {
                 <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-xl">T</span>
                 </div>
-                <span className="text-xl font-bold text-white">TravelShip</span>
+                <span className="text-xl font-bold text-white">ShipperTrip</span>
               </div>
               <p className="text-light-darker text-sm">
                 La plateforme qui connecte voyageurs et expéditeurs
@@ -610,7 +610,7 @@ export default function HomePage() {
           </div>
 
           <div className="border-t border-light-darker pt-8 text-center text-light-darker text-sm">
-            <p>© 2025 TravelShip. Tous droits réservés.</p>
+            <p>© 2025 ShipperTrip. Tous droits réservés.</p>
           </div>
         </div>
       </footer>

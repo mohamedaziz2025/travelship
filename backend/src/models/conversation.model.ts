@@ -9,6 +9,9 @@ export interface IConversation extends Document {
   };
   archivedBy: mongoose.Types.ObjectId[];
   deletedBy: mongoose.Types.ObjectId[];
+  blocked?: boolean;
+  blockedBy?: mongoose.Types.ObjectId;
+  blockedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +46,17 @@ const conversationSchema = new Schema<IConversation>(
         ref: 'User',
       },
     ],
+    blocked: {
+      type: Boolean,
+      default: false,
+    },
+    blockedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    blockedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

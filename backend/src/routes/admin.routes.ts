@@ -10,6 +10,9 @@ import {
   deleteTrip,
   getAllConversations,
   deleteConversation,
+  getConversationMessages,
+  deleteMessage,
+  toggleConversationBlock,
 } from '../controllers/admin.controller';
 import { protect, authorize } from '../middlewares/auth';
 
@@ -36,6 +39,11 @@ router.delete('/trips/:id', deleteTrip);
 
 // Conversation management
 router.get('/conversations', getAllConversations);
+router.get('/conversations/:id/messages', getConversationMessages);
 router.delete('/conversations/:id', deleteConversation);
+router.patch('/conversations/:id/block', toggleConversationBlock);
+
+// Message management
+router.delete('/messages/:id', deleteMessage);
 
 export default router;

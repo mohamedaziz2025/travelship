@@ -2,7 +2,9 @@ import mongoose, { Document, Schema } from 'mongoose'
 
 export interface IAnnouncement extends Document {
   userId: mongoose.Types.ObjectId
-  type: 'package' | 'shopping'
+  userType: 'shipper' | 'sender' // Type d'utilisateur
+  type: 'package' | 'shopping' // Type de colis (obsolète, remplacé par packageType)
+  packageType?: 'personal' | 'purchase' | 'both' // Type de colis accepté/envoyé
   title?: string
   from: {
     city: string
@@ -22,16 +24,21 @@ export interface IAnnouncement extends Document {
   }
   dateFrom: Date
   dateTo: Date
+  transportType?: 'plane' | 'boat' | 'train' | 'car' // Moyen de transport (pour shipper)
+  weightRange: '0-1' | '2-5' | '5-10' | '10-15' | '15-20' | '20-25' | '25-30' | '30+' // Plage de poids en kg
+  serviceType?: 'paid' | 'free' // Service rémunéré ou gratuit (pour shipper)
   reward: number
   currency: string
   description: string
   photos: string[]
-  weight?: number
+  weight?: number // Poids exact (obsolète, utiliser weightRange)
   dimensions?: {
     length: number
     width: number
     height: number
   }
+  phoneNumber?: string // Numéro de téléphone optionnel
+  isUrgent?: boolean // Annonce urgente (pour sender)
   premium: boolean
   featured: boolean
   moderationStatus: 'pending' | 'approved' | 'rejected'
@@ -50,10 +57,19 @@ const announcementSchema = new Schema<IAnnouncement>(
       ref: 'User',
       required: true,
     },
+    userType: {
+      type: String,
+      enum: ['shipper', 'sender'],
+      required: true,
+    },
     type: {
       type: String,
       enum: ['package', 'shopping'],
       required: true,
+    },
+    packageType: {
+      type: String,
+      enum: ['personal', 'purchase', 'both'],
     },
     title: {
       type: String,
@@ -99,6 +115,19 @@ const announcementSchema = new Schema<IAnnouncement>(
       type: Date,
       required: true,
     },
+    transportType: {
+      type: String,
+      enum: ['plane', 'boat', 'train', 'car'],
+    },
+    weightRange: {
+      type: String,
+      enum: ['0-1', '2-5', '5-10', '10-15', '15-20', '20-25', '25-30', '30+'],
+      required: true,
+    },
+    serviceType: {
+      type: String,
+      enum: ['paid', 'free'],
+    },
     reward: {
       type: Number,
       required: true,
@@ -126,6 +155,14 @@ const announcementSchema = new Schema<IAnnouncement>(
       length: Number,
       width: Number,
       height: Number,
+    },
+    phoneNumber: {
+      type: String,
+      trim: true,
+    },
+    isUrgent: {
+      type: Boolean,
+      default: false,
     },
     premium: {
       type: Boolean,

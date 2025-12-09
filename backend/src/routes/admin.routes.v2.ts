@@ -37,12 +37,23 @@ import {
   updateSystemSetting,
   getAdmins,
   updateAdminRole,
+  updateAdmin,
+  blockAdmin,
+  deleteAdmin,
   
   // Static Pages (Module G)
   getStaticPages,
   getStaticPage,
   updateStaticPage,
   createStaticPage,
+  
+  // Conversation Management (Module H)
+  getAllConversations,
+  getConversationById,
+  getConversationMessages,
+  deleteConversation,
+  toggleConversationBlock,
+  deleteMessage,
 } from '../controllers/admin.controller.v2';
 import { protect, authorize } from '../middlewares/auth';
 
@@ -105,6 +116,9 @@ router.put('/settings', updateSystemSetting);
 // Admin Management
 router.get('/admins', getAdmins);
 router.put('/admins/:id/role', updateAdminRole);
+router.put('/admins/:id', updateAdmin);
+router.patch('/admins/:id/block', blockAdmin);
+router.delete('/admins/:id', deleteAdmin);
 
 // ========================================
 // 📄 MODULE G - STATIC PAGES
@@ -113,5 +127,15 @@ router.get('/pages', getStaticPages);
 router.get('/pages/:key', getStaticPage);
 router.put('/pages/:key', updateStaticPage);
 router.post('/pages', createStaticPage);
+
+// ========================================
+// 💬 MODULE H - CONVERSATION MANAGEMENT
+// ========================================
+router.get('/conversations', getAllConversations);
+router.get('/conversations/:id', getConversationById);
+router.get('/conversations/:id/messages', getConversationMessages);
+router.delete('/conversations/:id', deleteConversation);
+router.patch('/conversations/:id/block', toggleConversationBlock);
+router.delete('/messages/:id', deleteMessage);
 
 export default router;

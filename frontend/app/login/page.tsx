@@ -51,7 +51,7 @@ export default function LoginPage() {
           {/* Logo/Title */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
-              Bienvenue sur TravelShip
+              Bienvenue sur ShipperTrip
             </h1>
             <p className="text-white/70">
               Connectez-vous pour continuer

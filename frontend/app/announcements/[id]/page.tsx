@@ -335,7 +335,7 @@ export default function AnnouncementDetailPage() {
                     <div className="flex items-start gap-2 p-3 bg-accent/10 rounded-lg">
                       <Shield className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
                       <p className="text-xs text-dark/70">
-                        Utilisez toujours la messagerie TravelShip pour communiquer en toute sécurité
+                        Utilisez toujours la messagerie ShipperTrip pour communiquer en toute sécurité
                       </p>
                     </div>
                   </>

@@ -7,12 +7,12 @@ import { Toaster } from 'sonner'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'TravelShip - Connectez voyageurs et expéditeurs',
+  title: 'ShipperTrip - Connectez voyageurs et expéditeurs',
   description: 'Plateforme premium de mise en relation entre voyageurs et expéditeurs. Envoyez ou transportez des colis en toute sécurité.',
   keywords: ['voyage', 'colis', 'transport', 'shipping', 'travel'],
-  authors: [{ name: 'TravelShip' }],
+  authors: [{ name: 'ShipperTrip' }],
   openGraph: {
-    title: 'TravelShip',
+    title: 'ShipperTrip',
     description: 'Connectez voyageurs et expéditeurs',
     type: 'website',
   },

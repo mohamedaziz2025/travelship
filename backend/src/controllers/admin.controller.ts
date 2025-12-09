@@ -288,14 +288,19 @@ export const getAllConversations = async (req: AuthRequest, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;
 
+    console.log('Admin - Fetching all conversations...');
+    
     const [conversations, total] = await Promise.all([
       Conversation.find()
-        .populate('participants', 'name email avatarUrl')
+        .populate('participants', 'name email avatarUrl verified stats')
         .sort({ updatedAt: -1 })
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       Conversation.countDocuments(),
     ]);
+
+    console.log(`Admin - Found ${conversations.length} conversations out of ${total} total`);
 
     res.status(200).json({
       success: true,
@@ -308,6 +313,7 @@ export const getAllConversations = async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (error: any) {
+    console.error('Admin - Error fetching conversations:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -329,6 +335,94 @@ export const deleteConversation = async (req: AuthRequest, res: Response) => {
     res.status(200).json({
       success: true,
       message: 'Conversation supprimée avec succès',
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get messages from a specific conversation
+export const getConversationMessages = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const skip = (page - 1) * limit;
+
+    const conversation = await Conversation.findById(id)
+      .populate('participants', 'name email avatarUrl');
+    
+    if (!conversation) {
+      throw new AppError('Conversation non trouvée', 404);
+    }
+
+    const [messages, total] = await Promise.all([
+      Message.find({ conversationId: id })
+        .populate('sender', 'name email avatarUrl')
+        .sort({ createdAt: 1 })
+        .skip(skip)
+        .limit(limit),
+      Message.countDocuments({ conversationId: id }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        conversation,
+        messages,
+      },
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Delete a specific message
+export const deleteMessage = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const message = await Message.findById(id);
+    if (!message) {
+      throw new AppError('Message non trouvé', 404);
+    }
+
+    await message.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: 'Message supprimé avec succès',
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Block/Unblock a conversation
+export const toggleConversationBlock = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { blocked } = req.body;
+
+    const conversation = await Conversation.findById(id);
+    if (!conversation) {
+      throw new AppError('Conversation non trouvée', 404);
+    }
+
+    // Add blocked field to conversation if it doesn't exist
+    (conversation as any).blocked = blocked;
+    await conversation.save();
+
+    res.status(200).json({
+      success: true,
+      message: blocked ? 'Conversation bloquée' : 'Conversation débloquée',
+      data: conversation,
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

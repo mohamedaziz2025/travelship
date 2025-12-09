@@ -150,8 +150,21 @@ export const adminApi = {
   // System Settings (Module F)
   getSettings: (params?: any) => api.get('/admin/settings', { params }),
   updateSetting: (data: any) => api.post('/admin/settings', data),
+  
+  // Admin Management
   getAdmins: () => api.get('/admin/admins'),
   updateAdminRole: (id: string, adminRole: string) => api.put(`/admin/admins/${id}/role`, { adminRole }),
+  updateAdmin: (id: string, data: any) => api.put(`/admin/admins/${id}`, data),
+  blockAdmin: (id: string, blocked: boolean) => api.patch(`/admin/admins/${id}/block`, { blocked }),
+  deleteAdmin: (id: string) => api.delete(`/admin/admins/${id}`),
+  
+  // Conversations Management
+  getConversations: (params?: any) => api.get('/admin/conversations', { params }),
+  getConversationById: (id: string) => api.get(`/admin/conversations/${id}`),
+  getConversationMessages: (id: string, params?: any) => api.get(`/admin/conversations/${id}/messages`, { params }),
+  deleteConversation: (id: string) => api.delete(`/admin/conversations/${id}`),
+  toggleConversationBlock: (id: string, blocked: boolean) => api.patch(`/admin/conversations/${id}/block`, { blocked }),
+  deleteMessage: (id: string) => api.delete(`/admin/messages/${id}`),
   
   // Static Pages (Module G)
   getPages: (params?: any) => api.get('/admin/pages', { params }),

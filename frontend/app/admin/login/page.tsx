@@ -137,7 +137,7 @@ export default function AdminLogin() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full pl-12 pr-4 py-3 bg-[#0f172a] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="admin@travelship.com"
+                  placeholder="admin@shippertrip.com"
                   required
                 />
               </div>

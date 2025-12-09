@@ -18,8 +18,10 @@ export function NavBar() {
   const handleLogout = () => {
     logout()
     setShowUserMenu(false)
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
     toast.success('Déconnexion réussie')
-    router.push('/')
+    router.push('/login')
   }
 
   const navItems = [
@@ -35,9 +37,9 @@ export function NavBar() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group">
             <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center transform group-hover:scale-110 transition-transform">
-              <span className="text-white font-bold text-xl">T</span>
+              <span className="text-white font-bold text-xl">S</span>
             </div>
-            <span className="text-xl font-bold text-gradient">TravelShip</span>
+            <span className="text-xl font-bold text-gradient">ShipperTrip</span>
           </Link>
 
           {/* Desktop Navigation */}

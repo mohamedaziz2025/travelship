@@ -126,7 +126,7 @@ export default function DashboardPage() {
               Bonjour, {user?.name?.split(' ')[0]} 👋
             </h1>
             <p className="text-dark-lighter">
-              Bienvenue sur votre tableau de bord TravelShip
+              Bienvenue sur votre tableau de bord ShipperTrip
             </p>
           </div>
 

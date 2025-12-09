@@ -41,30 +41,83 @@ export const getAnnouncements = async (
       dateFrom,
       dateTo,
       type,
+      userType,
+      transportType,
+      weightRange,
+      serviceType,
+      packageType,
       minReward,
       maxReward,
+      isUrgent,
       premium,
+      sortBy = 'recent', // recent, price-asc, price-desc
       page = 1,
       limit = 20,
     } = req.query
 
     const query: any = { status: 'active' }
 
+    // Filtres de base
     if (from) query['from.city'] = new RegExp(from as string, 'i')
     if (to) query['to.city'] = new RegExp(to as string, 'i')
     if (type) query.type = type
+    if (userType) query.userType = userType
     if (premium) query.premium = premium === 'true'
 
+    // Filtres spécifiques Shipper/Sender
+    if (transportType) query.transportType = transportType
+    if (weightRange) query.weightRange = weightRange
+    if (serviceType) query.serviceType = serviceType
+    if (packageType) {
+      // Pour "both", on accepte aussi les annonces avec packageType "both"
+      if (packageType === 'both') {
+        query.packageType = 'both'
+      } else {
+        query.packageType = { $in: [packageType, 'both'] }
+      }
+    }
+    if (isUrgent !== undefined) query.isUrgent = isUrgent === 'true'
+
+    // Filtrage par intervalle de dates
     if (dateFrom || dateTo) {
-      query.dateFrom = {}
-      if (dateFrom) query.dateFrom.$gte = new Date(dateFrom as string)
-      if (dateTo) query.dateFrom.$lte = new Date(dateTo as string)
+      query.$and = query.$and || []
+      if (dateFrom && dateTo) {
+        // L'annonce doit chevaucher la période recherchée
+        query.$and.push({
+          $or: [
+            {
+              dateFrom: { $lte: new Date(dateTo as string) },
+              dateTo: { $gte: new Date(dateFrom as string) },
+            },
+          ],
+        })
+      } else if (dateFrom) {
+        query.dateTo = { $gte: new Date(dateFrom as string) }
+      } else if (dateTo) {
+        query.dateFrom = { $lte: new Date(dateTo as string) }
+      }
     }
 
+    // Filtrage par prix
     if (minReward || maxReward) {
       query.reward = {}
       if (minReward) query.reward.$gte = Number(minReward)
       if (maxReward) query.reward.$lte = Number(maxReward)
+    }
+
+    // Définir l'ordre de tri
+    let sortOptions: any = {}
+    switch (sortBy) {
+      case 'price-asc':
+        sortOptions = { reward: 1 }
+        break
+      case 'price-desc':
+        sortOptions = { reward: -1 }
+        break
+      case 'recent':
+      default:
+        sortOptions = { createdAt: -1 }
+        break
     }
 
     const skip = (Number(page) - 1) * Number(limit)
@@ -72,7 +125,7 @@ export const getAnnouncements = async (
     const [announcements, total] = await Promise.all([
       Announcement.find(query)
         .populate('userId', 'name email avatarUrl verified stats')
-        .sort({ createdAt: -1 })
+        .sort(sortOptions)
         .skip(skip)
         .limit(Number(limit)),
       Announcement.countDocuments(query),

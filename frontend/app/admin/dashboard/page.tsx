@@ -115,7 +115,7 @@ export default function AdminDashboard() {
             Dashboard Admin
           </h1>
           <p className="text-gray-400">
-            Vue d'ensemble de TravelShip - {new Date().toLocaleDateString('fr-FR')}
+            Vue d'ensemble de ShipperTrip - {new Date().toLocaleDateString('fr-FR')}
           </p>
         </motion.div>
 

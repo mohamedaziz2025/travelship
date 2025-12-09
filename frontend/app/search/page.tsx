@@ -47,11 +47,10 @@ interface Trip {
 export default function SearchPage() {
   const searchParams = useSearchParams()
   const [view, setView] = useState<'grid' | 'list' | 'map'>('grid')
-  const [searchType, setSearchType] = useState<'announcements' | 'trips'>('announcements')
+  const [searchType, setSearchType] = useState<'shipper' | 'sender'>('shipper')
   const [showFilters, setShowFilters] = useState(true)
   
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
-  const [trips, setTrips] = useState<Trip[]>([])
   const [loading, setLoading] = useState(true)
   
   // Filtres
@@ -63,7 +62,14 @@ export default function SearchPage() {
     minReward: '',
     maxReward: '',
     type: '',
-    minKg: ''
+    minKg: '',
+    userType: '',
+    transportType: '',
+    weightRange: '',
+    serviceType: '',
+    packageType: '',
+    isUrgent: '',
+    sortBy: 'recent'
   })
 
   // Initialize filters from URL params
@@ -91,32 +97,28 @@ export default function SearchPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      if (searchType === 'announcements') {
-        const params: any = {}
-        if (filters.from) params.from = filters.from
-        if (filters.to) params.to = filters.to
-        if (filters.dateFrom) params.dateFrom = filters.dateFrom
-        if (filters.dateTo) params.dateTo = filters.dateTo
-        if (filters.minReward) params.minReward = filters.minReward
-        if (filters.maxReward) params.maxReward = filters.maxReward
-        if (filters.type) params.type = filters.type
-        
-        const response = await announcementsApi.getAll(params)
-        if (response.data.success) {
-          setAnnouncements(response.data.data.announcements)
-        }
-      } else {
-        const params: any = {}
-        if (filters.from) params.from = filters.from
-        if (filters.to) params.to = filters.to
-        if (filters.dateFrom) params.dateFrom = filters.dateFrom
-        if (filters.dateTo) params.dateTo = filters.dateTo
-        if (filters.minKg) params.minKg = filters.minKg
-        
-        const response = await tripsApi.getAll(params)
-        if (response.data.success) {
-          setTrips(response.data.data.trips)
-        }
+      const params: any = {}
+      if (filters.from) params.from = filters.from
+      if (filters.to) params.to = filters.to
+      if (filters.dateFrom) params.dateFrom = filters.dateFrom
+      if (filters.dateTo) params.dateTo = filters.dateTo
+      if (filters.minReward) params.minReward = filters.minReward
+      if (filters.maxReward) params.maxReward = filters.maxReward
+      if (filters.type) params.type = filters.type
+      
+      // Filtre selon le type d'annonce sélectionné
+      params.userType = searchType
+      
+      if (filters.transportType) params.transportType = filters.transportType
+      if (filters.weightRange) params.weightRange = filters.weightRange
+      if (filters.serviceType) params.serviceType = filters.serviceType
+      if (filters.packageType) params.packageType = filters.packageType
+      if (filters.isUrgent) params.isUrgent = filters.isUrgent
+      if (filters.sortBy) params.sortBy = filters.sortBy
+      
+      const response = await announcementsApi.getAll(params)
+      if (response.data.success) {
+        setAnnouncements(response.data.data.announcements)
       }
     } catch (error) {
       toast.error('Erreur lors de la recherche')
@@ -138,7 +140,14 @@ export default function SearchPage() {
       minReward: '',
       maxReward: '',
       type: '',
-      minKg: ''
+      minKg: '',
+      userType: '',
+      transportType: '',
+      weightRange: '',
+      serviceType: '',
+      packageType: '',
+      isUrgent: '',
+      sortBy: 'recent'
     })
   }
 
@@ -152,7 +161,7 @@ export default function SearchPage() {
           <div className="mb-8 space-y-6">
             <div className="flex items-center justify-between">
               <h1 className="text-4xl font-bold text-dark">
-                {searchType === 'announcements' ? 'Annonces' : 'Trajets'}
+                {searchType === 'shipper' ? 'Annonces Shipper' : 'Annonces Sender'}
               </h1>
               
               {/* View Toggle */}
@@ -199,24 +208,24 @@ export default function SearchPage() {
             {/* Type Toggle */}
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => setSearchType('announcements')}
+                onClick={() => setSearchType('shipper')}
                 className={`px-6 py-2 rounded-lg font-medium transition-all ${
-                  searchType === 'announcements'
+                  searchType === 'shipper'
                     ? 'bg-gradient-primary text-white shadow-premium'
                     : 'bg-white text-dark-lighter hover:text-primary'
                 }`}
               >
-                📦 Annonces
+                ✈️ Annonce Shipper
               </button>
               <button
-                onClick={() => setSearchType('trips')}
+                onClick={() => setSearchType('sender')}
                 className={`px-6 py-2 rounded-lg font-medium transition-all ${
-                  searchType === 'trips'
+                  searchType === 'sender'
                     ? 'bg-gradient-primary text-white shadow-premium'
                     : 'bg-white text-dark-lighter hover:text-primary'
                 }`}
               >
-                ✈️ Trajets
+                📦 Annonce Sender
               </button>
               
               <button
@@ -243,6 +252,93 @@ export default function SearchPage() {
                       Réinitialiser
                     </button>
                   </div>
+
+                  {/* Moyen de transport (pour Shipper) */}
+                  {searchType === 'shipper' && (
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Moyen de transport</label>
+                          <select 
+                            value={filters.transportType}
+                            onChange={(e) => handleFilterChange('transportType', e.target.value)}
+                            className="input-field"
+                          >
+                            <option value="">Tous</option>
+                            <option value="plane">✈️ Avion</option>
+                            <option value="boat">🚢 Bateau</option>
+                            <option value="train">🚂 Train</option>
+                            <option value="car">🚗 Voiture</option>
+                          </select>
+                        </div>
+                      )}
+
+                  {/* Type de service (pour Shipper) */}
+                  {searchType === 'shipper' && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Type de service</label>
+                      <select 
+                        value={filters.serviceType}
+                        onChange={(e) => handleFilterChange('serviceType', e.target.value)}
+                        className="input-field"
+                      >
+                        <option value="">Tous</option>
+                        <option value="paid">💰 Rémunéré</option>
+                        <option value="free">🆓 Gratuit</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Type de colis */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Type de colis</label>
+                    <select 
+                      value={filters.packageType}
+                      onChange={(e) => handleFilterChange('packageType', e.target.value)}
+                      className="input-field"
+                    >
+                      <option value="">Tous</option>
+                      <option value="personal">📦 Colis personnel</option>
+                      <option value="purchase">🛍️ Achat</option>
+                      <option value="both">📦🛍️ Les deux</option>
+                    </select>
+                  </div>
+
+                  {/* Plage de poids */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      <Package className="w-4 h-4 inline mr-1" />
+                      Poids
+                    </label>
+                    <select 
+                      value={filters.weightRange}
+                      onChange={(e) => handleFilterChange('weightRange', e.target.value)}
+                      className="input-field"
+                    >
+                      <option value="">Tous</option>
+                      <option value="0-1">0–1 kg</option>
+                      <option value="2-5">2–5 kg</option>
+                      <option value="5-10">5–10 kg</option>
+                      <option value="10-15">10–15 kg</option>
+                      <option value="15-20">15–20 kg</option>
+                      <option value="20-25">20–25 kg</option>
+                      <option value="25-30">25–30 kg</option>
+                      <option value="30+">+30 kg</option>
+                    </select>
+                  </div>
+
+                  {/* Urgent (pour Sender) */}
+                  {searchType === 'sender' && (
+                    <div>
+                      <label className="flex items-center space-x-2">
+                        <input 
+                          type="checkbox"
+                          checked={filters.isUrgent === 'true'}
+                          onChange={(e) => handleFilterChange('isUrgent', e.target.checked ? 'true' : '')}
+                          className="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary"
+                        />
+                        <span className="text-sm font-medium">🚨 Urgent uniquement</span>
+                      </label>
+                    </div>
+                  )}
                   
                   {/* Ville de départ */}
                   <div>
@@ -302,65 +398,45 @@ export default function SearchPage() {
                     />
                   </div>
 
-                  {searchType === 'announcements' && (
-                    <>
-                      {/* Type d'annonce */}
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Type</label>
-                        <select 
-                          value={filters.type}
-                          onChange={(e) => handleFilterChange('type', e.target.value)}
-                          className="input-field"
-                        >
-                          <option value="">Tous</option>
-                          <option value="package">📦 Colis</option>
-                          <option value="shopping">🛍️ Achat</option>
-                        </select>
-                      </div>
+                  {/* Type d'annonce */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Type</label>
+                    <select 
+                      value={filters.type}
+                      onChange={(e) => handleFilterChange('type', e.target.value)}
+                      className="input-field"
+                    >
+                      <option value="">Tous</option>
+                      <option value="package">📦 Colis</option>
+                      <option value="shopping">🛍️ Achat</option>
+                    </select>
+                  </div>
 
-                      {/* Récompense */}
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          <DollarSign className="w-4 h-4 inline mr-1" />
-                          Récompense min
-                        </label>
-                        <input 
-                          type="number"
-                          placeholder="50"
-                          value={filters.minReward}
-                          onChange={(e) => handleFilterChange('minReward', e.target.value)}
-                          className="input-field"
-                        />
-                      </div>
+                  {/* Récompense */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      <DollarSign className="w-4 h-4 inline mr-1" />
+                      Récompense min
+                    </label>
+                    <input 
+                      type="number"
+                      placeholder="50"
+                      value={filters.minReward}
+                      onChange={(e) => handleFilterChange('minReward', e.target.value)}
+                      className="input-field"
+                    />
+                  </div>
 
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Récompense max</label>
-                        <input 
-                          type="number"
-                          placeholder="500"
-                          value={filters.maxReward}
-                          onChange={(e) => handleFilterChange('maxReward', e.target.value)}
-                          className="input-field"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {searchType === 'trips' && (
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        <Package className="w-4 h-4 inline mr-1" />
-                        Capacité min (kg)
-                      </label>
-                      <input 
-                        type="number"
-                        placeholder="5"
-                        value={filters.minKg}
-                        onChange={(e) => handleFilterChange('minKg', e.target.value)}
-                        className="input-field"
-                      />
-                    </div>
-                  )}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Récompense max</label>
+                    <input 
+                      type="number"
+                      placeholder="500"
+                      value={filters.maxReward}
+                      onChange={(e) => handleFilterChange('maxReward', e.target.value)}
+                      className="input-field"
+                    />
+                  </div>
                 </div>
               </aside>
             )}
@@ -370,13 +446,17 @@ export default function SearchPage() {
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-dark-lighter">
                   <span className="font-semibold text-dark">
-                    {searchType === 'announcements' ? announcements.length : trips.length}
+                    {announcements.length}
                   </span> résultats trouvés
                 </p>
-                <select className="px-4 py-2 bg-white rounded-lg border border-light-darker">
-                  <option>Plus récent</option>
-                  <option>Prix croissant</option>
-                  <option>Prix décroissant</option>
+                <select 
+                  value={filters.sortBy}
+                  onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                  className="px-4 py-2 bg-white rounded-lg border border-light-darker"
+                >
+                  <option value="recent">Plus récent</option>
+                  <option value="price-asc">Prix croissant</option>
+                  <option value="price-desc">Prix décroissant</option>
                   <option>Plus de vues</option>
                 </select>
               </div>
@@ -387,15 +467,14 @@ export default function SearchPage() {
                 </div>
               ) : (
                 <>
-                  {searchType === 'announcements' ? (
-                    announcements.length === 0 ? (
-                      <div className="card text-center py-12">
-                        <Package className="w-16 h-16 text-dark-lighter mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold mb-2">Aucune annonce trouvée</h3>
-                        <p className="text-dark-lighter mb-6">Modifiez vos critères de recherche</p>
-                        <button onClick={clearFilters} className="btn-primary">
-                          Réinitialiser les filtres
-                        </button>
+                  {announcements.length === 0 ? (
+                    <div className="card text-center py-12">
+                      <Package className="w-16 h-16 text-dark-lighter mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold mb-2">Aucune annonce trouvée</h3>
+                      <p className="text-dark-lighter mb-6">Modifiez vos critères de recherche</p>
+                      <button onClick={clearFilters} className="btn-primary">
+                        Réinitialiser les filtres
+                      </button>
                       </div>
                     ) : (
                       <div className={view === 'grid' ? 'grid md:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-4'}>
@@ -465,74 +544,7 @@ export default function SearchPage() {
                         ))}
                       </div>
                     )
-                  ) : (
-                    trips.length === 0 ? (
-                      <div className="card text-center py-12">
-                        <MapIcon className="w-16 h-16 text-dark-lighter mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold mb-2">Aucun trajet trouvé</h3>
-                        <p className="text-dark-lighter mb-6">Modifiez vos critères de recherche</p>
-                        <button onClick={clearFilters} className="btn-primary">
-                          Réinitialiser les filtres
-                        </button>
-                      </div>
-                    ) : (
-                      <div className={view === 'grid' ? 'grid md:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-4'}>
-                        {trips.map((trip) => (
-                          <Link 
-                            key={trip._id}
-                            href={`/trips/${trip._id}`}
-                            className="card hover:shadow-premium transition-all group"
-                          >
-                            {/* Badge */}
-                            <div className="flex items-center justify-between mb-4">
-                              <span className="badge badge-verified">✈️ Trajet</span>
-                              <span className="text-sm font-bold text-secondary">
-                                {trip.pricePerKg}€/kg
-                              </span>
-                            </div>
-
-                            {/* Route */}
-                            <h3 className="text-xl font-bold text-dark mb-2 group-hover:text-secondary transition-colors">
-                              {trip.from.city} → {trip.to.city}
-                            </h3>
-
-                            {/* Details */}
-                            <div className="flex items-center gap-4 text-sm text-dark-lighter mb-4">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                {new Date(trip.departureDate).toLocaleDateString('fr-FR')}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Package className="w-4 h-4" />
-                                {trip.availableKg} kg
-                              </span>
-                            </div>
-
-                            {/* User Info */}
-                            <div className="flex items-center justify-between pt-4 border-t border-light-darker">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-gradient-secondary rounded-full flex items-center justify-center text-white text-sm">
-                                  {trip.userId.name?.[0] || 'U'}
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-dark">
-                                    {trip.userId.name}
-                                  </p>
-                                  {trip.userId.verified && (
-                                    <span className="text-xs text-green-600">✓ Vérifié</span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 text-sm text-dark-lighter">
-                                <Eye className="w-4 h-4" />
-                                {trip.views}
-                              </div>
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-                    )
-                  )}
+                  }
 
                   {/* Vue carte */}
                   {view === 'map' && (
@@ -544,10 +556,7 @@ export default function SearchPage() {
                           La carte interactive sera disponible prochainement
                         </p>
                         <p className="text-sm text-dark-lighter">
-                          {searchType === 'announcements' 
-                            ? `${announcements.length} annonces à afficher`
-                            : `${trips.length} trajets à afficher`
-                          }
+                          {announcements.length} annonces à afficher
                         </p>
                       </div>
                     </div>

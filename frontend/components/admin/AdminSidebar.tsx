@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
@@ -14,8 +14,13 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
+  MessageSquare,
+  LogOut,
+  User,
 } from 'lucide-react'
 import { useState } from 'react'
+import { useAuthStore } from '@/lib/store'
+import toast from 'react-hot-toast'
 
 interface SidebarProps {
   className?: string
@@ -39,6 +44,12 @@ const menuItems = [
     href: '/admin/announcements',
     icon: FileText,
     description: 'Gestion des annonces',
+  },
+  {
+    title: 'Conversations',
+    href: '/admin/conversations',
+    icon: MessageSquare,
+    description: 'Discussions utilisateurs',
   },
   {
     title: 'Signalements',
@@ -74,7 +85,21 @@ const menuItems = [
 
 export default function AdminSidebar({ className = '' }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
+  const { user, logout } = useAuthStore()
+
+  const handleLogout = async () => {
+    if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+      try {
+        logout()
+        toast.success('Déconnexion réussie')
+        router.push('/admin/login')
+      } catch (error) {
+        toast.error('Erreur lors de la déconnexion')
+      }
+    }
+  }
 
   return (
     <motion.aside
@@ -95,7 +120,7 @@ export default function AdminSidebar({ className = '' }: SidebarProps) {
               <span className="text-white font-bold text-sm">TS</span>
             </div>
             <div>
-              <h1 className="text-white font-bold text-sm">TravelShip</h1>
+              <h1 className="text-white font-bold text-sm">ShipperTrip</h1>
               <p className="text-gray-400 text-xs">Admin Panel</p>
             </div>
           </motion.div>
@@ -114,7 +139,7 @@ export default function AdminSidebar({ className = '' }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100vh-4rem)]">
+      <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100vh-12rem)]">
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
@@ -156,8 +181,36 @@ export default function AdminSidebar({ className = '' }: SidebarProps) {
         })}
       </nav>
 
-      {/* Bottom Gradient */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#0f172a] to-transparent pointer-events-none" />
+      {/* User Info & Logout */}
+      <div className="absolute bottom-0 left-0 right-0 border-t border-gray-800 bg-[#0f172a]">
+        {!collapsed && user && (
+          <div className="p-4 border-b border-gray-800">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-white text-sm truncate">{user.name}</div>
+                <div className="text-xs text-gray-400 truncate">{user.email}</div>
+                <div className="text-xs text-blue-400 mt-0.5">
+                  {user.adminRole === 'superadmin' ? '👑 Super Admin' : '🛡️ Modérateur'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <button
+          onClick={handleLogout}
+          className={`
+            w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all
+            ${collapsed ? 'justify-center' : ''}
+          `}
+        >
+          <LogOut className="w-5 h-5" />
+          {!collapsed && <span className="font-medium">Déconnexion</span>}
+        </button>
+      </div>
     </motion.aside>
   )
 }

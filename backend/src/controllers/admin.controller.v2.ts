@@ -887,6 +887,142 @@ export const updateAdminRole = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const updateAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, email, adminRole } = req.body;
+
+    // Check if requesting user is superadmin
+    if (req.user?.adminRole !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Seul un super admin peut modifier les admins',
+      });
+    }
+
+    // Prevent modifying yourself
+    if (id === req.user?.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vous ne pouvez pas modifier votre propre compte ici',
+      });
+    }
+
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (adminRole) updateData.adminRole = adminRole;
+
+    const admin = await User.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password -refreshTokens');
+
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin non trouvé' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Admin mis à jour avec succès',
+      data: admin,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const blockAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { blocked } = req.body;
+
+    // Check if requesting user is superadmin
+    if (req.user?.adminRole !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Seul un super admin peut bloquer/débloquer des admins',
+      });
+    }
+
+    // Prevent blocking yourself
+    if (id === req.user?.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vous ne pouvez pas vous bloquer vous-même',
+      });
+    }
+
+    const admin = await User.findById(id);
+    if (!admin || admin.role !== 'admin') {
+      return res.status(404).json({ success: false, message: 'Admin non trouvé' });
+    }
+
+    admin.status = blocked ? 'blocked' : 'active';
+    await admin.save();
+
+    res.status(200).json({
+      success: true,
+      message: blocked ? 'Admin bloqué avec succès' : 'Admin débloqué avec succès',
+      data: admin,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteAdmin = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Check if requesting user is superadmin
+    if (req.user?.adminRole !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Seul un super admin peut supprimer des admins',
+      });
+    }
+
+    // Prevent deleting yourself
+    if (id === req.user?.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vous ne pouvez pas supprimer votre propre compte',
+      });
+    }
+
+    const admin = await User.findById(id);
+    if (!admin || admin.role !== 'admin') {
+      return res.status(404).json({ success: false, message: 'Admin non trouvé' });
+    }
+
+    // Check if it's the last superadmin
+    if (admin.adminRole === 'superadmin') {
+      const superadminCount = await User.countDocuments({ 
+        role: 'admin', 
+        adminRole: 'superadmin' 
+      });
+      
+      if (superadminCount <= 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Impossible de supprimer le dernier super admin',
+        });
+      }
+    }
+
+    await admin.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: 'Admin supprimé avec succès',
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // ========================================
 // 📄 STATIC PAGES (Module G)
 // ========================================
@@ -980,6 +1116,207 @@ export const createStaticPage = async (req: AuthRequest, res: Response) => {
         message: 'Une page avec cette clé existe déjà',
       });
     }
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ========================================
+// 💬 CONVERSATION MANAGEMENT (Module H)
+// ========================================
+
+export const getAllConversations = async (req: AuthRequest, res: Response) => {
+  try {
+    const { page = 1, limit = 20, search, blocked } = req.query;
+
+    const query: any = {};
+
+    // Filter by blocked status
+    if (blocked !== undefined) {
+      query.blocked = blocked === 'true';
+    }
+
+    // Search by participant name or email
+    if (search) {
+      const users = await User.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+        ],
+      }).select('_id');
+
+      const userIds = users.map((u) => u._id);
+      query.participants = { $in: userIds };
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [conversations, total] = await Promise.all([
+      Conversation.find(query)
+        .populate('participants', 'name email avatarUrl verified')
+        .populate('blockedBy', 'name email')
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      Conversation.countDocuments(query),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: conversations,
+      pagination: {
+        total,
+        page: Number(page),
+        pages: Math.ceil(total / Number(limit)),
+        limit: Number(limit),
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getConversationById = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const conversation = await Conversation.findById(id)
+      .populate('participants', 'name email avatarUrl verified stats')
+      .populate('blockedBy', 'name email');
+
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: 'Conversation non trouvée' });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: conversation,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getConversationMessages = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+
+    const conversation = await Conversation.findById(id);
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: 'Conversation non trouvée' });
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [messages, total] = await Promise.all([
+      Message.find({ conversationId: id })
+        .populate('senderId', 'name email avatarUrl')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      Message.countDocuments({ conversationId: id }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: messages.reverse(), // Reverse to show oldest first
+      pagination: {
+        total,
+        page: Number(page),
+        pages: Math.ceil(total / Number(limit)),
+        limit: Number(limit),
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteConversation = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const conversation = await Conversation.findById(id);
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: 'Conversation non trouvée' });
+    }
+
+    // Delete all messages in the conversation
+    await Message.deleteMany({ conversationId: id });
+
+    // Delete the conversation
+    await conversation.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: 'Conversation et tous ses messages supprimés avec succès',
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const toggleConversationBlock = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { blocked } = req.body;
+
+    const conversation = await Conversation.findById(id);
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: 'Conversation non trouvée' });
+    }
+
+    conversation.blocked = blocked;
+    conversation.blockedBy = blocked ? req.user?.id : undefined;
+    conversation.blockedAt = blocked ? new Date() : undefined;
+
+    await conversation.save();
+
+    res.status(200).json({
+      success: true,
+      message: blocked ? 'Conversation bloquée avec succès' : 'Conversation débloquée avec succès',
+      data: conversation,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteMessage = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const message = await Message.findById(id);
+    if (!message) {
+      return res.status(404).json({ success: false, message: 'Message non trouvé' });
+    }
+
+    await message.deleteOne();
+
+    // Update lastMessage in conversation if this was the last message
+    const conversation = await Conversation.findById(message.conversationId);
+    if (conversation && conversation.lastMessage) {
+      const latestMessage = await Message.findOne({ conversationId: message.conversationId })
+        .sort({ createdAt: -1 });
+
+      if (latestMessage) {
+        conversation.lastMessage = {
+          content: latestMessage.content,
+          senderId: latestMessage.senderId,
+          timestamp: latestMessage.createdAt,
+        };
+      } else {
+        conversation.lastMessage = undefined;
+      }
+
+      await conversation.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Message supprimé avec succès',
+    });
+  } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
