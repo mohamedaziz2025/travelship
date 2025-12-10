@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { NavBar } from '@/components/navbar'
 import { SearchBar } from '@/components/search-bar'
 import { ArrowRight, Package, Shield, Zap, Users, Star, CheckCircle, MapPin, Calendar, DollarSign, Eye, Heart, X, Sparkles } from 'lucide-react'
@@ -45,7 +45,7 @@ interface Trip {
   }
 }
 
-export default function HomePage() {
+function HomePageContent() {
   const searchParams = useSearchParams()
   const [searchType, setSearchType] = useState<'announcements' | 'trips'>('announcements')
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
@@ -774,5 +774,20 @@ export default function HomePage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-light flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-dark/60">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <HomePageContent />
+    </Suspense>
   )
 }

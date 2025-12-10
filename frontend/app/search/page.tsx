@@ -2,7 +2,7 @@
 
 import { NavBar } from '@/components/navbar'
 import { Filter, Grid, List, MapIcon, Search, MapPin, Calendar, Package, DollarSign, Eye, Star } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { announcementsApi, tripsApi } from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -44,7 +44,7 @@ interface Trip {
   }
 }
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams()
   const [view, setView] = useState<'grid' | 'list' | 'map'>('grid')
   const [searchType, setSearchType] = useState<'shipper' | 'sender'>('shipper')
@@ -568,5 +568,20 @@ export default function SearchPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-light flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-dark/60">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
   )
 }
