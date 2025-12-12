@@ -152,66 +152,16 @@ function HomePageContent() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Link href="/register" className="btn-primary text-lg px-8 py-4">
-                Commencer gratuitement
+              <Link href="/search?type=sender" className="btn-primary text-lg px-8 py-4">
+                Sender
+                <Package className="w-5 h-5 ml-2" />
+              </Link>
+              <Link href="/search?type=shipper" className="btn-secondary text-lg px-8 py-4">
+                Shipper
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
-              <Link href="/how-it-works" className="btn-secondary text-lg px-8 py-4">
-                Comment ça marche
-              </Link>
             </div>
           </div>
-
-          {/* Search Bar */}
-          <div className="mt-16 flex justify-center animate-fade-up animation-delay-200">
-            <SearchBar variant="hero" onSearch={loadResults} />
-          </div>
-
-          {/* Search Type Toggle */}
-          {hasSearched && (
-            <div className="mt-8 flex justify-center">
-              <div className="inline-flex rounded-lg bg-white p-1 shadow-sm">
-                <button
-                  onClick={() => { setSearchType('announcements'); loadResults(); }}
-                  className={`px-6 py-2 rounded-md font-medium transition-colors ${
-                    searchType === 'announcements'
-                      ? 'bg-gradient-primary text-white'
-                      : 'text-dark/60 hover:text-dark'
-                  }`}
-                >
-                  Annonces ({announcements.length})
-                </button>
-                <button
-                  onClick={() => { setSearchType('trips'); loadResults(); }}
-                  className={`px-6 py-2 rounded-md font-medium transition-colors ${
-                    searchType === 'trips'
-                      ? 'bg-gradient-primary text-white'
-                      : 'text-dark/60 hover:text-dark'
-                  }`}
-                >
-                  Trajets ({trips.length})
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Trust indicators */}
-          {!hasSearched && (
-            <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-dark-lighter animate-fade-up animation-delay-400">
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="w-5 h-5 text-accent" />
-                <span>Profils vérifiés</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Shield className="w-5 h-5 text-accent" />
-                <span>Paiement sécurisé</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Star className="w-5 h-5 text-accent fill-accent" />
-                <span>4.9/5 sur 10,000+ avis</span>
-              </div>
-            </div>
-          )}
         </div>
       </section>
 

@@ -5,6 +5,7 @@ import { Filter, Grid, List, MapIcon, Search, MapPin, Calendar, Package, DollarS
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { announcementsApi, tripsApi } from '@/lib/api'
+import { LocationAutocomplete } from '@/components/location-autocomplete'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 
@@ -79,6 +80,12 @@ function SearchPageContent() {
     const dateFrom = searchParams.get('dateFrom') || ''
     const dateTo = searchParams.get('dateTo') || ''
     const type = searchParams.get('type') || ''
+    const urlSearchType = searchParams.get('type') as 'shipper' | 'sender' | null
+    
+    // Définir le type de recherche depuis l'URL
+    if (urlSearchType === 'shipper' || urlSearchType === 'sender') {
+      setSearchType(urlSearchType)
+    }
     
     setFilters(prev => ({
       ...prev,
@@ -190,18 +197,16 @@ function SearchPageContent() {
             {/* Search Bar Simple */}
             <div className="card">
               <div className="flex items-center gap-3">
-                <Search className="w-5 h-5 text-dark-lighter" />
-                <input
-                  type="text"
-                  placeholder="Rechercher une ville..."
-                  className="flex-1 bg-transparent border-none focus:outline-none"
-                  onChange={(e) => {
-                    const value = e.target.value
-                    if (value) {
-                      handleFilterChange('from', value)
-                    }
-                  }}
-                />
+                <Search className="w-5 h-5 text-dark-lighter flex-shrink-0" />
+                <div className="flex-1">
+                  <LocationAutocomplete
+                    value={filters.from}
+                    onChange={(value) => handleFilterChange('from', value)}
+                    placeholder="Rechercher une ville de départ..."
+                    className="w-full bg-transparent border-none focus:outline-none focus:ring-0"
+                    cityOnly={true}
+                  />
+                </div>
               </div>
             </div>
 
@@ -346,12 +351,12 @@ function SearchPageContent() {
                       <MapPin className="w-4 h-4 inline mr-1" />
                       Ville de départ
                     </label>
-                    <input 
-                      type="text"
-                      placeholder="Paris, Lyon..."
+                    <LocationAutocomplete
                       value={filters.from}
-                      onChange={(e) => handleFilterChange('from', e.target.value)}
+                      onChange={(value) => handleFilterChange('from', value)}
+                      placeholder="Rechercher une ville..."
                       className="input-field"
+                      cityOnly={true}
                     />
                   </div>
 
@@ -361,12 +366,12 @@ function SearchPageContent() {
                       <MapPin className="w-4 h-4 inline mr-1" />
                       Ville d'arrivée
                     </label>
-                    <input 
-                      type="text"
-                      placeholder="Marseille, Nice..."
+                    <LocationAutocomplete
                       value={filters.to}
-                      onChange={(e) => handleFilterChange('to', e.target.value)}
+                      onChange={(value) => handleFilterChange('to', value)}
+                      placeholder="Rechercher une ville..."
                       className="input-field"
+                      cityOnly={true}
                     />
                   </div>
 

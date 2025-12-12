@@ -4,7 +4,17 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plane, MapPin, Calendar, Package, FileText } from 'lucide-react'
 import { tripsApi } from '@/lib/api'
+import { LocationAutocomplete } from '@/components/location-autocomplete'
+import { ErrorMessage } from '@/components/form/error-message'
 import toast from 'react-hot-toast'
+import {
+  validateCity,
+  validateCountry,
+  validateDate,
+  validateEndDate,
+  validateNumber,
+  validateDescription,
+} from '@/lib/validation'
 
 export default function NewTripPage() {
   const router = useRouter()
@@ -19,9 +29,119 @@ export default function NewTripPage() {
     availableKg: '',
     notes: '',
   })
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  const [touched, setTouched] = useState<{ [key: string]: boolean }>({})
+
+  // Validation
+  const validateField = (name: string, value: string) => {
+    let error: string | undefined
+
+    switch (name) {
+      case 'fromCity':
+        error = validateCity(value)
+        break
+      case 'fromCountry':
+        error = validateCountry(value)
+        break
+      case 'toCity':
+        error = validateCity(value)
+        break
+      case 'toCountry':
+        error = validateCountry(value)
+        break
+      case 'departureDate':
+        error = validateDate(value)
+        break
+      case 'arrivalDate':
+        error = validateEndDate(formData.departureDate, value)
+        break
+      case 'availableKg':
+        error = validateNumber(value, 'Le poids disponible')
+        break
+      case 'notes':
+        error = value ? validateDescription(value, 10, 1000) : undefined
+        break
+    }
+
+    setErrors((prev) => {
+      const newErrors = { ...prev }
+      if (error) {
+        newErrors[name] = error
+      } else {
+        delete newErrors[name]
+      }
+      return newErrors
+    })
+  }
+
+  const handleChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }))
+    if (touched[name]) {
+      validateField(name, value)
+    }
+  }
+
+  const handleBlur = (name: string) => {
+    setTouched((prev) => ({ ...prev, [name]: true }))
+    validateField(name, formData[name as keyof typeof formData])
+  }
+
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {}
+
+    const fromCityError = validateCity(formData.fromCity)
+    if (fromCityError) newErrors.fromCity = fromCityError
+
+    const fromCountryError = validateCountry(formData.fromCountry)
+    if (fromCountryError) newErrors.fromCountry = fromCountryError
+
+    const toCityError = validateCity(formData.toCity)
+    if (toCityError) newErrors.toCity = toCityError
+
+    const toCountryError = validateCountry(formData.toCountry)
+    if (toCountryError) newErrors.toCountry = toCountryError
+
+    const departureDateError = validateDate(formData.departureDate)
+    if (departureDateError) newErrors.departureDate = departureDateError
+
+    const arrivalDateError = validateEndDate(
+      formData.departureDate,
+      formData.arrivalDate
+    )
+    if (arrivalDateError) newErrors.arrivalDate = arrivalDateError
+
+    const availableKgError = validateNumber(formData.availableKg, 'Le poids disponible')
+    if (availableKgError) newErrors.availableKg = availableKgError
+
+    if (formData.notes) {
+      const notesError = validateDescription(formData.notes, 10, 1000)
+      if (notesError) newErrors.notes = notesError
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Marquer tous les champs comme touchés
+    setTouched({
+      fromCity: true,
+      fromCountry: true,
+      toCity: true,
+      toCountry: true,
+      departureDate: true,
+      arrivalDate: true,
+      availableKg: true,
+      notes: true,
+    })
+
+    // Valider le formulaire
+    if (!validateForm()) {
+      toast.error('Veuillez corriger les erreurs dans le formulaire')
+      return
+    }
     setLoading(true)
 
     try {
@@ -85,75 +205,77 @@ export default function NewTripPage() {
           </div>
 
           {/* From */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-dark mb-2">
-                <MapPin className="inline w-4 h-4 mr-1" />
-                Ville de départ
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.fromCity}
-                onChange={(e) =>
-                  setFormData({ ...formData, fromCity: e.target.value })
+          <div>
+            <label className="block text-sm font-medium text-dark mb-2">
+              <MapPin className="inline w-4 h-4 mr-1" />
+              Lieu de départ <span className="text-red-500">*</span>
+            </label>
+            <LocationAutocomplete
+              value={formData.fromCity && formData.fromCountry ? `${formData.fromCity}, ${formData.fromCountry}` : formData.fromCity}
+              onChange={(value) => {
+                // Seulement parser quand une suggestion a été sélectionnée (contient ", ")
+                if (value.includes(', ')) {
+                  const parts = value.split(', ')
+                  const newData = {
+                    ...formData,
+                    fromCity: parts[0] || '',
+                    fromCountry: parts.slice(1).join(', ') || '',
+                  }
+                  setFormData(newData)
+                  if (touched.fromCity) {
+                    validateField('fromCity', parts[0] || '')
+                    validateField('fromCountry', parts.slice(1).join(', ') || '')
+                  }
+                } else {
+                  // Pendant la saisie, garder juste la ville
+                  setFormData({
+                    ...formData,
+                    fromCity: value,
+                    fromCountry: '',
+                  })
                 }
-                className="input"
-                placeholder="Paris"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-dark mb-2">
-                Pays de départ
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.fromCountry}
-                onChange={(e) =>
-                  setFormData({ ...formData, fromCountry: e.target.value })
-                }
-                className="input"
-                placeholder="France"
-              />
-            </div>
+              }}
+              placeholder="Rechercher une ville..."
+              className={`${(errors.fromCity || errors.fromCountry) && (touched.fromCity || touched.fromCountry) ? 'border-red-500' : ''}`}
+            />
+            <ErrorMessage error={errors.fromCity || errors.fromCountry} touched={touched.fromCity || touched.fromCountry} />
           </div>
 
           {/* To */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-dark mb-2">
-                <MapPin className="inline w-4 h-4 mr-1" />
-                Ville d'arrivée
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.toCity}
-                onChange={(e) =>
-                  setFormData({ ...formData, toCity: e.target.value })
+          <div>
+            <label className="block text-sm font-medium text-dark mb-2">
+              <MapPin className="inline w-4 h-4 mr-1" />
+              Lieu d'arrivée <span className="text-red-500">*</span>
+            </label>
+            <LocationAutocomplete
+              value={formData.toCity && formData.toCountry ? `${formData.toCity}, ${formData.toCountry}` : formData.toCity}
+              onChange={(value) => {
+                // Seulement parser quand une suggestion a été sélectionnée (contient ", ")
+                if (value.includes(', ')) {
+                  const parts = value.split(', ')
+                  const newData = {
+                    ...formData,
+                    toCity: parts[0] || '',
+                    toCountry: parts.slice(1).join(', ') || '',
+                  }
+                  setFormData(newData)
+                  if (touched.toCity) {
+                    validateField('toCity', parts[0] || '')
+                    validateField('toCountry', parts.slice(1).join(', ') || '')
+                  }
+                } else {
+                  // Pendant la saisie, garder juste la ville
+                  setFormData({
+                    ...formData,
+                    toCity: value,
+                    toCountry: '',
+                  })
                 }
-                className="input"
-                placeholder="New York"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-dark mb-2">
-                Pays d'arrivée
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.toCountry}
-                onChange={(e) =>
-                  setFormData({ ...formData, toCountry: e.target.value })
-                }
-                className="input"
-                placeholder="États-Unis"
-              />
-            </div>
+              }}
+              placeholder="Rechercher une ville..."
+              className={`${(errors.toCity || errors.toCountry) && (touched.toCity || touched.toCountry) ? 'border-red-500' : ''}`}
+            />
+            <ErrorMessage error={errors.toCity || errors.toCountry} touched={touched.toCity || touched.toCountry} />
           </div>
 
           {/* Dates */}
@@ -161,33 +283,35 @@ export default function NewTripPage() {
             <div>
               <label className="block text-sm font-medium text-dark mb-2">
                 <Calendar className="inline w-4 h-4 mr-1" />
-                Date de départ
+                Date de départ <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
                 required
                 value={formData.departureDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, departureDate: e.target.value })
-                }
-                className="input"
+                onChange={(e) => handleChange('departureDate', e.target.value)}
+                onBlur={() => handleBlur('departureDate')}
+                min={new Date().toISOString().split('T')[0]}
+                className={`input ${errors.departureDate && touched.departureDate ? 'border-red-500' : ''}`}
               />
+              <ErrorMessage error={errors.departureDate} touched={touched.departureDate} />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-dark mb-2">
                 <Calendar className="inline w-4 h-4 mr-1" />
-                Date d'arrivée
+                Date d'arrivée <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
                 required
                 value={formData.arrivalDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, arrivalDate: e.target.value })
-                }
-                className="input"
+                onChange={(e) => handleChange('arrivalDate', e.target.value)}
+                onBlur={() => handleBlur('arrivalDate')}
+                min={formData.departureDate || new Date().toISOString().split('T')[0]}
+                className={`input ${errors.arrivalDate && touched.arrivalDate ? 'border-red-500' : ''}`}
               />
+              <ErrorMessage error={errors.arrivalDate} touched={touched.arrivalDate} />
             </div>
           </div>
 
@@ -195,19 +319,19 @@ export default function NewTripPage() {
           <div>
             <label className="block text-sm font-medium text-dark mb-2">
               <Package className="inline w-4 h-4 mr-1" />
-              Poids disponible (kg)
+              Poids disponible (kg) <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
               step="0.5"
               required
               value={formData.availableKg}
-              onChange={(e) =>
-                setFormData({ ...formData, availableKg: e.target.value })
-              }
-              className="input"
+              onChange={(e) => handleChange('availableKg', e.target.value)}
+              onBlur={() => handleBlur('availableKg')}
+              className={`input ${errors.availableKg && touched.availableKg ? 'border-red-500' : ''}`}
               placeholder="5"
             />
+            <ErrorMessage error={errors.availableKg} touched={touched.availableKg} />
             <p className="text-xs text-dark/60 mt-1">
               Combien de kilos pouvez-vous transporter dans vos bagages ?
             </p>
@@ -221,12 +345,18 @@ export default function NewTripPage() {
             </label>
             <textarea
               value={formData.notes}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
-              }
-              className="input min-h-[120px]"
+              onChange={(e) => handleChange('notes', e.target.value)}
+              onBlur={() => handleBlur('notes')}
+              className={`input min-h-[120px] ${errors.notes && touched.notes ? 'border-red-500' : ''}`}
               placeholder="Informations complémentaires sur votre voyage, restrictions, etc."
+              maxLength={1000}
             />
+            <div className="flex justify-between items-start">
+              <ErrorMessage error={errors.notes} touched={touched.notes} />
+              <p className="text-xs text-dark/60 mt-1">
+                {formData.notes.length} / 1000
+              </p>
+            </div>
           </div>
 
           {/* Info */}

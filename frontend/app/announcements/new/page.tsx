@@ -4,7 +4,20 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Package, MapPin, Calendar, DollarSign, FileText, Plane, Ship, Train, Car, Phone, Upload } from 'lucide-react'
 import { announcementsApi } from '@/lib/api'
+import { LocationAutocomplete } from '@/components/location-autocomplete'
+import { ErrorMessage } from '@/components/form/error-message'
 import toast from 'react-hot-toast'
+import {
+  validateCity,
+  validateCountry,
+  validateDate,
+  validateEndDate,
+  validateReward,
+  validateDescription,
+  validateTitle,
+  validatePhone,
+  validateWeight,
+} from '@/lib/validation'
 
 export default function NewAnnouncementPage() {
   const router = useRouter()
@@ -34,9 +47,145 @@ export default function NewAnnouncementPage() {
       height: '',
     },
   })
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  const [touched, setTouched] = useState<{ [key: string]: boolean }>({})
+
+  // Validation
+  const validateField = (name: string, value: any) => {
+    let error: string | undefined
+
+    switch (name) {
+      case 'title':
+        error = validateTitle(value)
+        break
+      case 'fromCity':
+        error = validateCity(value)
+        break
+      case 'fromCountry':
+        error = validateCountry(value)
+        break
+      case 'toCity':
+        error = validateCity(value)
+        break
+      case 'toCountry':
+        error = validateCountry(value)
+        break
+      case 'pickupDate':
+        error = validateDate(value)
+        break
+      case 'deliveryDate':
+        error = validateEndDate(formData.pickupDate, value)
+        break
+      case 'reward':
+        error = validateReward(value)
+        break
+      case 'description':
+        error = validateDescription(value)
+        break
+      case 'phoneNumber':
+        error = validatePhone(value)
+        break
+      case 'weight':
+        error = validateWeight(value)
+        break
+    }
+
+    setErrors((prev) => {
+      const newErrors = { ...prev }
+      if (error) {
+        newErrors[name] = error
+      } else {
+        delete newErrors[name]
+      }
+      return newErrors
+    })
+  }
+
+  const handleChange = (name: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [name]: value }))
+    if (touched[name]) {
+      validateField(name, value)
+    }
+  }
+
+  const handleBlur = (name: string) => {
+    setTouched((prev) => ({ ...prev, [name]: true }))
+    const value = name.includes('.')
+      ? formData.dimensions[name.split('.')[1] as keyof typeof formData.dimensions]
+      : formData[name as keyof typeof formData]
+    validateField(name, value)
+  }
+
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {}
+
+    const titleError = validateTitle(formData.title)
+    if (titleError) newErrors.title = titleError
+
+    const fromCityError = validateCity(formData.fromCity)
+    if (fromCityError) newErrors.fromCity = fromCityError
+
+    const fromCountryError = validateCountry(formData.fromCountry)
+    if (fromCountryError) newErrors.fromCountry = fromCountryError
+
+    const toCityError = validateCity(formData.toCity)
+    if (toCityError) newErrors.toCity = toCityError
+
+    const toCountryError = validateCountry(formData.toCountry)
+    if (toCountryError) newErrors.toCountry = toCountryError
+
+    const pickupDateError = validateDate(formData.pickupDate)
+    if (pickupDateError) newErrors.pickupDate = pickupDateError
+
+    const deliveryDateError = validateEndDate(
+      formData.pickupDate,
+      formData.deliveryDate
+    )
+    if (deliveryDateError) newErrors.deliveryDate = deliveryDateError
+
+    const rewardError = validateReward(formData.reward)
+    if (rewardError) newErrors.reward = rewardError
+
+    const descriptionError = validateDescription(formData.description)
+    if (descriptionError) newErrors.description = descriptionError
+
+    if (formData.phoneNumber) {
+      const phoneError = validatePhone(formData.phoneNumber)
+      if (phoneError) newErrors.phoneNumber = phoneError
+    }
+
+    if (formData.weight) {
+      const weightError = validateWeight(formData.weight)
+      if (weightError) newErrors.weight = weightError
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Marquer tous les champs comme touchés
+    setTouched({
+      title: true,
+      fromCity: true,
+      fromCountry: true,
+      toCity: true,
+      toCountry: true,
+      pickupDate: true,
+      deliveryDate: true,
+      reward: true,
+      description: true,
+      phoneNumber: true,
+      weight: true,
+    })
+
+    // Valider le formulaire
+    if (!validateForm()) {
+      toast.error('Veuillez corriger les erreurs dans le formulaire')
+      return
+    }
     setLoading(true)
 
     try {
@@ -160,18 +309,18 @@ export default function NewAnnouncementPage() {
           {userType === 'sender' && (
             <div>
               <label className="block text-sm font-medium text-dark mb-2">
-                Titre de l'annonce
+                Titre de l'annonce <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.title}
-                onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
-                }
-                className="input"
+                onChange={(e) => handleChange('title', e.target.value)}
+                onBlur={() => handleBlur('title')}
+                className={`input ${errors.title && touched.title ? 'border-red-500' : ''}`}
                 placeholder="Ex: Envoi de documents importants"
               />
+              <ErrorMessage error={errors.title} touched={touched.title} />
             </div>
           )}
 
@@ -284,75 +433,77 @@ export default function NewAnnouncementPage() {
           )}
 
           {/* From */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-dark mb-2">
-                <MapPin className="inline w-4 h-4 mr-1" />
-                Ville de départ
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.fromCity}
-                onChange={(e) =>
-                  setFormData({ ...formData, fromCity: e.target.value })
+          <div>
+            <label className="block text-sm font-medium text-dark mb-2">
+              <MapPin className="inline w-4 h-4 mr-1" />
+              Lieu de départ <span className="text-red-500">*</span>
+            </label>
+            <LocationAutocomplete
+              value={formData.fromCity && formData.fromCountry ? `${formData.fromCity}, ${formData.fromCountry}` : formData.fromCity}
+              onChange={(value) => {
+                // Seulement parser quand une suggestion a été sélectionnée (contient ", ")
+                if (value.includes(', ')) {
+                  const parts = value.split(', ')
+                  const newData = {
+                    ...formData,
+                    fromCity: parts[0] || '',
+                    fromCountry: parts.slice(1).join(', ') || '',
+                  }
+                  setFormData(newData)
+                  if (touched.fromCity) {
+                    validateField('fromCity', parts[0] || '')
+                    validateField('fromCountry', parts.slice(1).join(', ') || '')
+                  }
+                } else {
+                  // Pendant la saisie, garder juste la ville
+                  setFormData({
+                    ...formData,
+                    fromCity: value,
+                    fromCountry: '',
+                  })
                 }
-                className="input"
-                placeholder="Paris"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-dark mb-2">
-                Pays de départ
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.fromCountry}
-                onChange={(e) =>
-                  setFormData({ ...formData, fromCountry: e.target.value })
-                }
-                className="input"
-                placeholder="France"
-              />
-            </div>
+              }}
+              placeholder="Rechercher une ville..."
+              className={`${(errors.fromCity || errors.fromCountry) && (touched.fromCity || touched.fromCountry) ? 'border-red-500' : ''}`}
+            />
+            <ErrorMessage error={errors.fromCity || errors.fromCountry} touched={touched.fromCity || touched.fromCountry} />
           </div>
 
           {/* To */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-dark mb-2">
-                <MapPin className="inline w-4 h-4 mr-1" />
-                Ville d'arrivée
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.toCity}
-                onChange={(e) =>
-                  setFormData({ ...formData, toCity: e.target.value })
+          <div>
+            <label className="block text-sm font-medium text-dark mb-2">
+              <MapPin className="inline w-4 h-4 mr-1" />
+              Lieu d'arrivée <span className="text-red-500">*</span>
+            </label>
+            <LocationAutocomplete
+              value={formData.toCity && formData.toCountry ? `${formData.toCity}, ${formData.toCountry}` : formData.toCity}
+              onChange={(value) => {
+                // Seulement parser quand une suggestion a été sélectionnée (contient ", ")
+                if (value.includes(', ')) {
+                  const parts = value.split(', ')
+                  const newData = {
+                    ...formData,
+                    toCity: parts[0] || '',
+                    toCountry: parts.slice(1).join(', ') || '',
+                  }
+                  setFormData(newData)
+                  if (touched.toCity) {
+                    validateField('toCity', parts[0] || '')
+                    validateField('toCountry', parts.slice(1).join(', ') || '')
+                  }
+                } else {
+                  // Pendant la saisie, garder juste la ville
+                  setFormData({
+                    ...formData,
+                    toCity: value,
+                    toCountry: '',
+                  })
                 }
-                className="input"
-                placeholder="Lyon"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-dark mb-2">
-                Pays d'arrivée
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.toCountry}
-                onChange={(e) =>
-                  setFormData({ ...formData, toCountry: e.target.value })
-                }
-                className="input"
-                placeholder="France"
-              />
-            </div>
+              }}
+              placeholder="Rechercher une ville..."
+              className={`${(errors.toCity || errors.toCountry) && (touched.toCity || touched.toCountry) ? 'border-red-500' : ''}`}
+            />
+            <ErrorMessage error={errors.toCity || errors.toCountry} touched={touched.toCity || touched.toCountry} />
           </div>
 
           {/* Dates */}
@@ -360,33 +511,35 @@ export default function NewAnnouncementPage() {
             <div>
               <label className="block text-sm font-medium text-dark mb-2">
                 <Calendar className="inline w-4 h-4 mr-1" />
-                {userType === 'shipper' ? 'Date du voyage' : 'Date de début'}
+                {userType === 'shipper' ? 'Date du voyage' : 'Date de début'} <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
                 required
                 value={formData.pickupDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, pickupDate: e.target.value })
-                }
-                className="input"
+                onChange={(e) => handleChange('pickupDate', e.target.value)}
+                onBlur={() => handleBlur('pickupDate')}
+                min={new Date().toISOString().split('T')[0]}
+                className={`input ${errors.pickupDate && touched.pickupDate ? 'border-red-500' : ''}`}
               />
+              <ErrorMessage error={errors.pickupDate} touched={touched.pickupDate} />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-dark mb-2">
                 <Calendar className="inline w-4 h-4 mr-1" />
-                {userType === 'shipper' ? 'Date de retour (optionnel)' : 'Date de fin'}
+                {userType === 'shipper' ? 'Date de retour (optionnel)' : 'Date de fin'} {userType === 'sender' && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="date"
                 required={userType === 'sender'}
                 value={formData.deliveryDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, deliveryDate: e.target.value })
-                }
-                className="input"
+                onChange={(e) => handleChange('deliveryDate', e.target.value)}
+                onBlur={() => handleBlur('deliveryDate')}
+                min={formData.pickupDate || new Date().toISOString().split('T')[0]}
+                className={`input ${errors.deliveryDate && touched.deliveryDate ? 'border-red-500' : ''}`}
               />
+              <ErrorMessage error={errors.deliveryDate} touched={touched.deliveryDate} />
             </div>
           </div>
 
@@ -527,18 +680,18 @@ export default function NewAnnouncementPage() {
               <DollarSign className="inline w-4 h-4 mr-1" />
               {userType === 'shipper' 
                 ? 'Prix demandé (€)' 
-                : 'Prix proposé (€)'}
+                : 'Prix proposé (€)'} <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
               required
               value={formData.reward}
-              onChange={(e) =>
-                setFormData({ ...formData, reward: e.target.value })
-              }
-              className="input"
+              onChange={(e) => handleChange('reward', e.target.value)}
+              onBlur={() => handleBlur('reward')}
+              className={`input ${errors.reward && touched.reward ? 'border-red-500' : ''}`}
               placeholder="25"
             />
+            <ErrorMessage error={errors.reward} touched={touched.reward} />
             <p className="text-xs text-dark/60 mt-1">
               {userType === 'shipper'
                 ? 'Montant que vous demandez pour le transport'
@@ -550,19 +703,25 @@ export default function NewAnnouncementPage() {
           <div>
             <label className="block text-sm font-medium text-dark mb-2">
               <FileText className="inline w-4 h-4 mr-1" />
-              Description
+              Description <span className="text-red-500">*</span>
             </label>
             <textarea
               required
               value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              className="input min-h-[120px]"
+              onChange={(e) => handleChange('description', e.target.value)}
+              onBlur={() => handleBlur('description')}
+              className={`input min-h-[120px] ${errors.description && touched.description ? 'border-red-500' : ''}`}
               placeholder={userType === 'shipper' 
                 ? 'Décrivez votre voyage, vos conditions, etc.'
                 : 'Décrivez votre colis, les précautions à prendre, etc.'}
+              maxLength={500}
             />
+            <div className="flex justify-between items-start">
+              <ErrorMessage error={errors.description} touched={touched.description} />
+              <p className="text-xs text-dark/60 mt-1">
+                {formData.description.length} / 500
+              </p>
+            </div>
           </div>
 
           {/* Numéro de téléphone (optionnel) */}
@@ -574,12 +733,12 @@ export default function NewAnnouncementPage() {
             <input
               type="tel"
               value={formData.phoneNumber}
-              onChange={(e) =>
-                setFormData({ ...formData, phoneNumber: e.target.value })
-              }
-              className="input"
+              onChange={(e) => handleChange('phoneNumber', e.target.value)}
+              onBlur={() => handleBlur('phoneNumber')}
+              className={`input ${errors.phoneNumber && touched.phoneNumber ? 'border-red-500' : ''}`}
               placeholder="+33 6 12 34 56 78"
             />
+            <ErrorMessage error={errors.phoneNumber} touched={touched.phoneNumber} />
           </div>
 
           {/* Urgent (Sender uniquement) */}

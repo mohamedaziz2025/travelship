@@ -6,6 +6,13 @@ import Link from 'next/link'
 import { User, Mail, Lock, Eye, EyeOff, Phone } from 'lucide-react'
 import { authApi } from '@/lib/api'
 import toast from 'react-hot-toast'
+import {
+  validateEmail,
+  validatePassword,
+  validatePasswordConfirm,
+  validateName,
+  validatePhone,
+} from '@/lib/validation'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -20,18 +27,89 @@ export default function RegisterPage() {
     phone: '',
     role: 'both' as 'sender' | 'shipper' | 'both',
   })
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
+  const [touched, setTouched] = useState<{ [key: string]: boolean }>({})
+
+  // Validation en temps réel
+  const validateField = (name: string, value: string) => {
+    let error: string | undefined
+
+    switch (name) {
+      case 'name':
+        error = validateName(value)
+        break
+      case 'email':
+        error = validateEmail(value)
+        break
+      case 'password':
+        error = validatePassword(value)
+        break
+      case 'confirmPassword':
+        error = validatePasswordConfirm(formData.password, value)
+        break
+      case 'phone':
+        error = validatePhone(value)
+        break
+    }
+
+    setErrors((prev) => {
+      const newErrors = { ...prev }
+      if (error) {
+        newErrors[name] = error
+      } else {
+        delete newErrors[name]
+      }
+      return newErrors
+    })
+  }
+
+  const handleChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }))
+    if (touched[name]) {
+      validateField(name, value)
+    }
+  }
+
+  const handleBlur = (name: string) => {
+    setTouched((prev) => ({ ...prev, [name]: true }))
+    validateField(name, formData[name as keyof typeof formData] as string)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Les mots de passe ne correspondent pas')
-      return
-    }
+    // Marquer tous les champs comme touchés
+    setTouched({
+      name: true,
+      email: true,
+      password: true,
+      confirmPassword: true,
+      phone: true,
+    })
 
-    if (formData.password.length < 6) {
-      toast.error('Le mot de passe doit contenir au moins 6 caractères')
+    // Valider tous les champs
+    const nameError = validateName(formData.name)
+    const emailError = validateEmail(formData.email)
+    const passwordError = validatePassword(formData.password)
+    const confirmPasswordError = validatePasswordConfirm(
+      formData.password,
+      formData.confirmPassword
+    )
+    const phoneError = validatePhone(formData.phone)
+
+    const validationErrors: { [key: string]: string } = {}
+    if (nameError) validationErrors.name = nameError
+    if (emailError) validationErrors.email = emailError
+    if (passwordError) validationErrors.password = passwordError
+    if (confirmPasswordError)
+      validationErrors.confirmPassword = confirmPasswordError
+    if (phoneError) validationErrors.phone = phoneError
+
+    setErrors(validationErrors)
+
+    // Si il y a des erreurs, arrêter
+    if (Object.keys(validationErrors).length > 0) {
+      toast.error('Veuillez corriger les erreurs dans le formulaire')
       return
     }
 
@@ -79,7 +157,7 @@ export default function RegisterPage() {
             {/* Name */}
             <div>
               <label className="block text-sm font-medium text-white mb-2">
-                Nom complet
+                Nom complet <span className="text-red-400">*</span>
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
@@ -87,13 +165,22 @@ export default function RegisterPage() {
                   type="text"
                   required
                   value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent transition-all"
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  onBlur={() => handleBlur('name')}
+                  className={`w-full pl-11 pr-4 py-3 bg-white/10 border rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent transition-all ${
+                    errors.name && touched.name
+                      ? 'border-red-500'
+                      : 'border-white/20'
+                  }`}
                   placeholder="Jean Dupont"
                 />
               </div>
+              {errors.name && touched.name && (
+                <p className="mt-1 text-sm text-red-400 flex items-center gap-1">
+                  <span>⚠️</span>
+                  {errors.name}
+                </p>
+              )}
             </div>
 
             {/* Email & Phone */}
@@ -101,7 +188,7 @@ export default function RegisterPage() {
               {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
-                  Email
+                  Email <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
@@ -109,13 +196,22 @@ export default function RegisterPage() {
                     type="email"
                     required
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    className="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent transition-all"
+                    onChange={(e) => handleChange('email', e.target.value)}
+                    onBlur={() => handleBlur('email')}
+                    className={`w-full pl-11 pr-4 py-3 bg-white/10 border rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent transition-all ${
+                      errors.email && touched.email
+                        ? 'border-red-500'
+                        : 'border-white/20'
+                    }`}
                     placeholder="votre@email.com"
                   />
                 </div>
+                {errors.email && touched.email && (
+                  <p className="mt-1 text-sm text-red-400 flex items-center gap-1">
+                    <span>⚠️</span>
+                    {errors.email}
+                  </p>
+                )}
               </div>
 
               {/* Phone */}
@@ -128,13 +224,22 @@ export default function RegisterPage() {
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                    className="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent transition-all"
+                    onChange={(e) => handleChange('phone', e.target.value)}
+                    onBlur={() => handleBlur('phone')}
+                    className={`w-full pl-11 pr-4 py-3 bg-white/10 border rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent transition-all ${
+                      errors.phone && touched.phone
+                        ? 'border-red-500'
+                        : 'border-white/20'
+                    }`}
                     placeholder="+33 6 12 34 56 78"
                   />
                 </div>
+                {errors.phone && touched.phone && (
+                  <p className="mt-1 text-sm text-red-400 flex items-center gap-1">
+                    <span>⚠️</span>
+                    {errors.phone}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -143,7 +248,7 @@ export default function RegisterPage() {
               {/* Password */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
-                  Mot de passe
+                  Mot de passe <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
@@ -151,10 +256,13 @@ export default function RegisterPage() {
                     type={showPassword ? 'text' : 'password'}
                     required
                     value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                    className="w-full pl-11 pr-12 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent transition-all"
+                    onChange={(e) => handleChange('password', e.target.value)}
+                    onBlur={() => handleBlur('password')}
+                    className={`w-full pl-11 pr-12 py-3 bg-white/10 border rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent transition-all ${
+                      errors.password && touched.password
+                        ? 'border-red-500'
+                        : 'border-white/20'
+                    }`}
                     placeholder="••••••••"
                   />
                   <button
@@ -169,12 +277,18 @@ export default function RegisterPage() {
                     )}
                   </button>
                 </div>
+                {errors.password && touched.password && (
+                  <p className="mt-1 text-sm text-red-400 flex items-center gap-1">
+                    <span>⚠️</span>
+                    {errors.password}
+                  </p>
+                )}
               </div>
 
               {/* Confirm Password */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
-                  Confirmer le mot de passe
+                  Confirmer le mot de passe <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
@@ -183,12 +297,14 @@ export default function RegisterPage() {
                     required
                     value={formData.confirmPassword}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        confirmPassword: e.target.value,
-                      })
+                      handleChange('confirmPassword', e.target.value)
                     }
-                    className="w-full pl-11 pr-12 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent transition-all"
+                    onBlur={() => handleBlur('confirmPassword')}
+                    className={`w-full pl-11 pr-12 py-3 bg-white/10 border rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent transition-all ${
+                      errors.confirmPassword && touched.confirmPassword
+                        ? 'border-red-500'
+                        : 'border-white/20'
+                    }`}
                     placeholder="••••••••"
                   />
                   <button
@@ -203,6 +319,12 @@ export default function RegisterPage() {
                     )}
                   </button>
                 </div>
+                {errors.confirmPassword && touched.confirmPassword && (
+                  <p className="mt-1 text-sm text-red-400 flex items-center gap-1">
+                    <span>⚠️</span>
+                    {errors.confirmPassword}
+                  </p>
+                )}
               </div>
             </div>
 

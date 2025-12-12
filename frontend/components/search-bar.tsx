@@ -3,6 +3,7 @@
 import { Search, MapPin, Calendar } from 'lucide-react'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { LocationAutocomplete } from './location-autocomplete'
 
 interface SearchBarProps {
   onSearch?: (values: SearchValues) => void
@@ -51,22 +52,23 @@ export function SearchBar({ onSearch, variant = 'hero' }: SearchBarProps) {
     return (
       <form onSubmit={handleSubmit} className="w-full max-w-2xl">
         <div className="flex items-center bg-white rounded-lg shadow-lift p-2 space-x-2">
-          <MapPin className="w-5 h-5 text-dark-lighter ml-2" />
-          <input
-            type="text"
-            placeholder="De..."
-            value={values.from}
-            onChange={(e) => setValues({ ...values, from: e.target.value })}
-            className="flex-1 px-2 py-2 border-none focus:outline-none focus:ring-0"
-          />
+          <div className="flex-1">
+            <LocationAutocomplete
+              value={values.from}
+              onChange={(value) => setValues({ ...values, from: value })}
+              placeholder="De..."
+              className="w-full px-2 py-2 border-none focus:outline-none focus:ring-0"
+            />
+          </div>
           <div className="w-px h-6 bg-light-darker" />
-          <input
-            type="text"
-            placeholder="Vers..."
-            value={values.to}
-            onChange={(e) => setValues({ ...values, to: e.target.value })}
-            className="flex-1 px-2 py-2 border-none focus:outline-none focus:ring-0"
-          />
+          <div className="flex-1">
+            <LocationAutocomplete
+              value={values.to}
+              onChange={(value) => setValues({ ...values, to: value })}
+              placeholder="Vers..."
+              className="w-full px-2 py-2 border-none focus:outline-none focus:ring-0"
+            />
+          </div>
           <button type="submit" className="btn-primary !px-6 !py-2">
             <Search className="w-5 h-5" />
           </button>
@@ -85,11 +87,10 @@ export function SearchBar({ onSearch, variant = 'hero' }: SearchBarProps) {
               <MapPin className="w-4 h-4" />
               <span>Départ</span>
             </label>
-            <input
-              type="text"
-              placeholder="Paris, France"
+            <LocationAutocomplete
               value={values.from}
-              onChange={(e) => setValues({ ...values, from: e.target.value })}
+              onChange={(value) => setValues({ ...values, from: value })}
+              placeholder="Paris, France"
               className="input bg-white"
             />
           </div>
@@ -100,11 +101,10 @@ export function SearchBar({ onSearch, variant = 'hero' }: SearchBarProps) {
               <MapPin className="w-4 h-4" />
               <span>Arrivée</span>
             </label>
-            <input
-              type="text"
-              placeholder="Lyon, France"
+            <LocationAutocomplete
               value={values.to}
-              onChange={(e) => setValues({ ...values, to: e.target.value })}
+              onChange={(value) => setValues({ ...values, to: value })}
+              placeholder="Lyon, France"
               className="input bg-white"
             />
           </div>
