@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express'
 import { Announcement } from '../models/Announcement'
 import { AppError } from '../middlewares/errorHandler'
 import { AuthRequest } from '../middlewares/auth'
+import { checkMatchingAlerts } from './alert.controller'
 
 // @desc    Create announcement
 // @route   POST /api/v1/announcements
@@ -17,6 +18,15 @@ export const createAnnouncement = async (
     })
 
     await announcement.populate('userId', 'name email avatarUrl verified stats')
+
+    // Vérifier les alertes correspondantes et notifier les utilisateurs
+    try {
+      const matchingAlerts = await checkMatchingAlerts(announcement, 'announcement')
+      console.log(`📢 ${matchingAlerts.length} alertes correspondent à cette annonce`)
+      // TODO: Envoyer notifications email/push aux utilisateurs
+    } catch (alertError) {
+      console.error('Erreur lors de la vérification des alertes:', alertError)
+    }
 
     res.status(201).json({
       success: true,

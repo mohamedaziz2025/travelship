@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/'
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -90,6 +90,17 @@ export const tripsApi = {
 export const matchingApi = {
   getMatchesForAnnouncement: (id: string) => api.get(`/matches/announcements/${id}`),
   getMatchesForTrip: (id: string) => api.get(`/matches/trips/${id}`),
+}
+
+// Alerts API
+export const alertsApi = {
+  create: (data: any) => api.post('/alerts', data),
+  getAll: () => api.get('/alerts'),
+  getById: (id: string) => api.get(`/alerts/${id}`),
+  getMatches: (id: string) => api.get(`/alerts/${id}/matches`),
+  update: (id: string, data: any) => api.put(`/alerts/${id}`, data),
+  toggle: (id: string) => api.patch(`/alerts/${id}/toggle`),
+  delete: (id: string) => api.delete(`/alerts/${id}`),
 }
 
 // Conversations API

@@ -3,9 +3,11 @@
 import { useState, useEffect, Suspense } from 'react'
 import { NavBar } from '@/components/navbar'
 import { SearchBar } from '@/components/search-bar'
-import { ArrowRight, Package, Shield, Zap, Users, Star, CheckCircle, MapPin, Calendar, DollarSign, Eye, Heart, X, Sparkles } from 'lucide-react'
+import { ArrowRight, Package, Shield, Zap, Users, Star, CheckCircle, MapPin, Calendar, DollarSign, Eye, Heart, X, Sparkles, Plus, Bell } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { announcementsApi, tripsApi, matchingApi } from '@/lib/api'
+import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import { useSearchParams } from 'next/navigation'
 
@@ -47,6 +49,8 @@ interface Trip {
 
 function HomePageContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const { isAuthenticated } = useAuthStore()
   const [searchType, setSearchType] = useState<'announcements' | 'trips'>('announcements')
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [trips, setTrips] = useState<Trip[]>([])
@@ -56,6 +60,33 @@ function HomePageContent() {
   const [matches, setMatches] = useState<any[]>([])
   const [loadingMatches, setLoadingMatches] = useState(false)
   const [showMatchModal, setShowMatchModal] = useState(false)
+
+  // Fonction pour rediriger vers création d'annonce
+  const handleCreateAnnouncement = () => {
+    if (isAuthenticated) {
+      router.push('/announcements/new')
+    } else {
+      router.push('/login?redirect=/announcements/new')
+    }
+  }
+
+  // Fonction pour rediriger vers création de trajet
+  const handleCreateTrip = () => {
+    if (isAuthenticated) {
+      router.push('/trips/new')
+    } else {
+      router.push('/login?redirect=/trips/new')
+    }
+  }
+
+  // Fonction pour rediriger vers les alertes
+  const handleCreateAlert = () => {
+    if (isAuthenticated) {
+      router.push('/alerts')
+    } else {
+      router.push('/login?redirect=/alerts')
+    }
+  }
 
   useEffect(() => {
     // Check if there are search params
@@ -160,6 +191,31 @@ function HomePageContent() {
                 Shipper
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
+            </div>
+
+            {/* Quick Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-6 border-t border-dark/10">
+              <button
+                onClick={handleCreateAnnouncement}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-accent text-white font-medium hover:bg-accent/90 transition-all shadow-lg hover:shadow-xl"
+              >
+                <Plus className="w-5 h-5" />
+                Publier une annonce
+              </button>
+              <button
+                onClick={handleCreateTrip}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-secondary text-white font-medium hover:bg-secondary/90 transition-all shadow-lg hover:shadow-xl"
+              >
+                <Plus className="w-5 h-5" />
+                Publier un trajet
+              </button>
+              <button
+                onClick={handleCreateAlert}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-dark font-medium hover:bg-light-darker transition-all shadow-lg hover:shadow-xl border border-dark/10"
+              >
+                <Bell className="w-5 h-5" />
+                Créer une alerte
+              </button>
             </div>
           </div>
         </div>

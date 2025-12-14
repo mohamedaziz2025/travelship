@@ -17,6 +17,7 @@ import chatRoutes from './routes/chat.routes'
 import conversationRoutes from './routes/conversation.routes'
 import adminRoutes from './routes/admin.routes'
 import adminRoutesV2 from './routes/admin.routes.v2'
+import alertRoutes from './routes/alert.routes'
 import { initializeSocket } from './socket'
 import { seedAdminUser } from './utils/seedAdmin'
 
@@ -58,6 +59,7 @@ app.use(`/api/${API_VERSION}/matches`, matchingRoutes)
 app.use(`/api/${API_VERSION}/chat`, chatRoutes)
 app.use(`/api/${API_VERSION}/conversations`, conversationRoutes)
 app.use(`/api/${API_VERSION}/admin`, adminRoutesV2)
+app.use(`/api/${API_VERSION}/alerts`, alertRoutes)
 
 // Error handling
 app.use(notFound)

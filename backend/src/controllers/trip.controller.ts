@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express'
 import { Trip } from '../models/Trip'
 import { AppError } from '../middlewares/errorHandler'
 import { AuthRequest } from '../middlewares/auth'
+import { checkMatchingAlerts } from './alert.controller'
 
 // @desc    Create trip
 // @route   POST /api/v1/trips
@@ -17,6 +18,15 @@ export const createTrip = async (
     })
 
     await trip.populate('userId', 'name email avatarUrl verified stats')
+
+    // Vérifier les alertes correspondantes et notifier les utilisateurs
+    try {
+      const matchingAlerts = await checkMatchingAlerts(trip, 'trip')
+      console.log(`📢 ${matchingAlerts.length} alertes correspondent à ce trajet`)
+      // TODO: Envoyer notifications email/push aux utilisateurs
+    } catch (alertError) {
+      console.error('Erreur lors de la vérification des alertes:', alertError)
+    }
 
     res.status(201).json({
       success: true,
