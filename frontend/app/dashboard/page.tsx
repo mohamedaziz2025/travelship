@@ -1,7 +1,7 @@
 'use client'
 
 import { SideBar } from '@/components/sidebar'
-import { Package, Plane, MessageCircle, TrendingUp, Plus, Eye, MapPin, Calendar } from 'lucide-react'
+import { Package, Plane, MessageCircle, TrendingUp, Plus, Eye, MapPin, Calendar, Bell } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store'
 import { useEffect, useState } from 'react'
@@ -131,7 +131,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick Actions */}
-          <div className="grid md:grid-cols-2 gap-4 mb-8">
+          <div className="grid md:grid-cols-3 gap-4 mb-8">
             <Link
               href="/announcements/new"
               className="card group bg-gradient-primary text-white hover:shadow-premium"
@@ -162,6 +162,23 @@ export default function DashboardPage() {
                 </div>
                 <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                   <Plus className="w-8 h-8" />
+                </div>
+              </div>
+            </Link>
+
+            <Link
+              href="/alerts"
+              className="card group bg-gradient-to-br from-orange-500 to-amber-600 text-white hover:shadow-premium"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">Créer une alerte</h3>
+                  <p className="text-white/90">
+                    Soyez notifié des nouvelles correspondances
+                  </p>
+                </div>
+                <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Bell className="w-8 h-8" />
                 </div>
               </div>
             </Link>

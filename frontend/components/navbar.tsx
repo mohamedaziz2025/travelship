@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, X, Search, Bell, User, LogOut, Settings as SettingsIcon } from 'lucide-react'
+import { Menu, X, Search, Bell, User, LogOut, Settings as SettingsIcon, LayoutDashboard } from 'lucide-react'
 import { useState } from 'react'
 import { useAuthStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
@@ -97,6 +97,14 @@ export function NavBar() {
                         <p className="text-sm text-dark/60">{user?.email}</p>
                       </div>
                       <div className="py-2">
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-3 px-4 py-2 hover:bg-light-dark transition-colors"
+                        >
+                          <LayoutDashboard className="w-4 h-4 text-dark/60" />
+                          <span>Dashboard</span>
+                        </Link>
                         <Link
                           href="/profile"
                           onClick={() => setShowUserMenu(false)}
