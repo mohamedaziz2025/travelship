@@ -12,6 +12,9 @@ export interface IUser extends Document {
   city?: string
   phone?: string
   verified: boolean
+  isEmailVerified: boolean
+  emailVerificationToken?: string
+  emailVerificationExpires?: Date
   avatarUrl?: string
   badges: string[]
   stats: {
@@ -82,6 +85,18 @@ const userSchema = new Schema<IUser>(
     verified: {
       type: Boolean,
       default: false,
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+      select: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
     },
     avatarUrl: {
       type: String,

@@ -56,6 +56,8 @@ export const authApi = {
   adminLogin: (data: any) => api.post('/auth/admin/login', data),
   logout: () => api.post('/auth/logout'),
   refresh: () => api.post('/auth/refresh'),
+  verifyEmail: (token: string) => api.get(`/auth/verify-email/${token}`),
+  resendVerification: (email: string) => api.post('/auth/resend-verification', { email }),
 }
 
 // Users API

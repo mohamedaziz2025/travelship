@@ -20,6 +20,7 @@ import adminRoutesV2 from './routes/admin.routes.v2'
 import alertRoutes from './routes/alert.routes'
 import { initializeSocket } from './socket'
 import { seedAdminUser } from './utils/seedAdmin'
+import { verifyEmailConnection } from './config/email'
 
 dotenv.config()
 
@@ -75,6 +76,9 @@ mongoose
   .connect(MONGODB_URI)
   .then(async () => {
     console.log('✅ MongoDB connected successfully')
+    
+    // Verify email service
+    await verifyEmailConnection()
     
     // Seed admin user
     await seedAdminUser()

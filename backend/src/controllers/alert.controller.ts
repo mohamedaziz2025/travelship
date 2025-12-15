@@ -3,6 +3,7 @@ import Alert from '../models/Alert';
 import { User } from '../models/User';
 import { Announcement } from '../models/Announcement';
 import { Trip } from '../models/Trip';
+import { sendAlertNotificationEmail } from '../utils/emailService';
 
 // Créer une alerte
 export const createAlert = async (req: Request, res: Response) => {
@@ -286,6 +287,36 @@ export const checkMatchingAlerts = async (
       alert.matchCount += 1;
       alert.lastNotifiedAt = new Date();
       await alert.save();
+
+      // Envoyer notification par email
+      const user = alert.userId as any;
+      if (user && user.email && user.isEmailVerified) {
+        try {
+          const matchDetails = {
+            from: announcementOrTrip.from,
+            to: announcementOrTrip.to,
+            date: type === 'announcement' 
+              ? announcementOrTrip.dateFrom 
+              : announcementOrTrip.departureDate,
+            weight: type === 'announcement'
+              ? announcementOrTrip.weight
+              : announcementOrTrip.availableKg,
+            price: type === 'announcement'
+              ? announcementOrTrip.reward
+              : announcementOrTrip.pricePerKg,
+          };
+
+          await sendAlertNotificationEmail(
+            user.email,
+            user.name,
+            alert.type,
+            matchDetails
+          );
+        } catch (error) {
+          console.error('Error sending alert notification email:', error);
+          // Don't fail the alert matching process if email fails
+        }
+      }
     }
 
     return matchingAlerts;

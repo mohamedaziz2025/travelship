@@ -125,10 +125,10 @@ export default function RegisterPage() {
       })
 
       if (response.data.success) {
-        toast.success('Compte créé avec succès ! Redirection...')
+        toast.success('Compte créé avec succès ! Vérifiez votre email pour activer votre compte.')
         setTimeout(() => {
           router.push('/login')
-        }, 1500)
+        }, 2000)
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Erreur lors de la création du compte')

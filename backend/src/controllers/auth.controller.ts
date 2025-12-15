@@ -5,6 +5,10 @@ import { User } from '../models/User'
 import { config } from '../config'
 import { AppError } from '../middlewares/errorHandler'
 import { AuthRequest } from '../middlewares/auth'
+import { 
+  generateVerificationToken, 
+  sendVerificationEmail 
+} from '../utils/emailService'
 
 // Generate JWT tokens
 const generateTokens = (userId: string) => {
@@ -51,6 +55,25 @@ export const register = async (
       password,
       role: role || 'both',
     })
+
+    // Send verification email for non-admin users
+    if (user.role !== 'admin') {
+      const { token, expires } = generateVerificationToken()
+      user.emailVerificationToken = token
+      user.emailVerificationExpires = expires
+      await user.save()
+
+      try {
+        await sendVerificationEmail(user.email, user.name, token)
+      } catch (error) {
+        console.error('Error sending verification email:', error)
+        // Don't fail registration if email fails
+      }
+    } else {
+      // Admins are automatically verified
+      user.isEmailVerified = true
+      await user.save()
+    }
 
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user._id.toString())
@@ -249,6 +272,7 @@ export const adminLogin = async (
           role: user.role,
           adminRole: user.adminRole,
           verified: user.verified,
+          isEmailVerified: user.isEmailVerified,
           avatarUrl: user.avatarUrl,
           badges: user.badges,
           stats: user.stats,
@@ -256,6 +280,87 @@ export const adminLogin = async (
         accessToken,
       },
     })
+  } catch (error) {
+    next(error)
+  }
+}
+
+// @desc    Verify email
+// @route   GET /api/v1/auth/verify-email/:token
+export const verifyEmail = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { token } = req.params
+
+    // Find user with valid verification token
+    const user = await User.findOne({
+      emailVerificationToken: token,
+      emailVerificationExpires: { $gt: Date.now() },
+    }).select('+emailVerificationToken +emailVerificationExpires')
+
+    if (!user) {
+      return next(new AppError('Token de vérification invalide ou expiré', 400))
+    }
+
+    // Update user
+    user.isEmailVerified = true
+    user.emailVerificationToken = undefined
+    user.emailVerificationExpires = undefined
+    await user.save()
+
+    res.json({
+      success: true,
+      message: 'Email vérifié avec succès',
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+// @desc    Resend verification email
+// @route   POST /api/v1/auth/resend-verification
+export const resendVerificationEmail = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email } = req.body
+
+    const user = await User.findOne({ email })
+
+    if (!user) {
+      return next(new AppError('Utilisateur non trouvé', 404))
+    }
+
+    if (user.isEmailVerified) {
+      return next(new AppError('Email déjà vérifié', 400))
+    }
+
+    if (user.role === 'admin') {
+      return next(new AppError('Les comptes admin ne nécessitent pas de vérification', 400))
+    }
+
+    // Generate new token
+    const { token, expires } = generateVerificationToken()
+    user.emailVerificationToken = token
+    user.emailVerificationExpires = expires
+    await user.save()
+
+    // Send email
+    try {
+      await sendVerificationEmail(user.email, user.name, token)
+      res.json({
+        success: true,
+        message: 'Email de vérification envoyé',
+      })
+    } catch (error) {
+      console.error('Error sending verification email:', error)
+      return next(new AppError('Erreur lors de l\'envoi de l\'email', 500))
+    }
   } catch (error) {
     next(error)
   }

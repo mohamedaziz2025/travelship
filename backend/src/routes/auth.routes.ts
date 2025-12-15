@@ -1,6 +1,14 @@
 import { Router } from 'express'
 import { body } from 'express-validator'
-import { register, login, adminLogin, refreshToken, logout } from '../controllers/auth.controller'
+import { 
+  register, 
+  login, 
+  adminLogin, 
+  refreshToken, 
+  logout,
+  verifyEmail,
+  resendVerificationEmail
+} from '../controllers/auth.controller'
 
 const router = Router()
 
@@ -51,6 +59,20 @@ router.post(
 // @desc    Refresh access token
 // @access  Public
 router.post('/refresh', refreshToken)
+
+// @route   GET /api/v1/auth/verify-email/:token
+// @desc    Verify email address
+// @access  Public
+router.get('/verify-email/:token', verifyEmail)
+
+// @route   POST /api/v1/auth/resend-verification
+// @desc    Resend verification email
+// @access  Public
+router.post(
+  '/resend-verification',
+  [body('email').isEmail().withMessage('Email invalide')],
+  resendVerificationEmail
+)
 
 // @route   POST /api/v1/auth/logout
 // @desc    Logout user
